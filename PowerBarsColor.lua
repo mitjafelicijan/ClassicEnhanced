@@ -11,7 +11,7 @@ local feature = {
 tinsert(ns.Features, feature)
 
 if feature.enabled then
-  local function RecolorUnitFrameManaBar(frame)
+  local function RecolorUnitFramePowerBar(frame)
     if frame then
       frame:SetStatusBarColor(
         ns.Config.ManaBarColor.r,
@@ -23,28 +23,28 @@ if feature.enabled then
   local function PlayerPowerBar()
     local _, typeLabel = UnitPowerType("player")
     if typeLabel == "MANA" then
-      RecolorUnitFrameManaBar(_G["PlayerFrameManaBar"])
+      RecolorUnitFramePowerBar(_G["PlayerFrameManaBar"])
     end
   end
 
   local function PlayerPetPowerBar()
     local _, typeLabel = UnitPowerType("pet")
     if typeLabel == "MANA" then
-      RecolorUnitFrameManaBar(_G["PetFrameManaBar"])
+      RecolorUnitFramePowerBar(_G["PetFrameManaBar"])
     end
   end
   
   local function TargetPowerBar()
     local _, typeLabel = UnitPowerType("target")
     if typeLabel == "MANA" then
-      RecolorUnitFrameManaBar(_G["TargetFrameManaBar"])
+      RecolorUnitFramePowerBar(_G["TargetFrameManaBar"])
     end
   end
   
   local function ToTPowerBar()
     local _, typeLabel = UnitPowerType("targettarget")
     if typeLabel == "MANA" then
-      RecolorUnitFrameManaBar(_G["TargetFrameToTManaBar"])
+      RecolorUnitFramePowerBar(_G["TargetFrameToTManaBar"])
     end
   end
 
@@ -56,7 +56,7 @@ if feature.enabled then
         if unit then
           local _, typeLabel = UnitPowerType(unit)
           if typeLabel == "MANA" then
-            RecolorUnitFrameManaBar(_G["PartyMemberFrame" .. i .. "ManaBar"])
+            RecolorUnitFramePowerBar(_G["PartyMemberFrame" .. i .. "ManaBar"])
           end
         end
       end
@@ -71,7 +71,7 @@ if feature.enabled then
         if unit then
           local _, typeLabel = UnitPowerType(unit)
           if typeLabel == "MANA" then
-            RecolorUnitFrameManaBar(_G["CompactRaidFrame" .. i .. "PowerBar"])
+            RecolorUnitFramePowerBar(_G["CompactRaidFrame" .. i .. "PowerBar"])
           end
         end
       end
