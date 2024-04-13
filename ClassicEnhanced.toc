@@ -20,5 +20,6 @@ ItemLevel.lua
 MaxCameraZoom.lua
 NameplateScaling.lua
 ScreenGlow.lua
+QuestLog.lua
 
 Settings.lua
