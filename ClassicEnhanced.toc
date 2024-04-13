@@ -1,0 +1,10 @@
+## Interface: 11500
+## Title: Classic Enchanced
+## Version: 1.0.0
+## Author: Mitja Felicijan
+## SavedVariablesPerCharacter: ClassicEnhancedDB
+
+Config.lua
+PowerBarsColor.lua
+AutoRepair.lua
+Settings.lua
