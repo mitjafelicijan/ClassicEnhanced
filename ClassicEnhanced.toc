@@ -5,6 +5,7 @@
 ## SavedVariablesPerCharacter: ClassicEnhancedDB
 
 Config.lua
+
 PowerBarsColor.lua
 AutoRepair.lua
 ChatArrowKeys.lua
@@ -15,4 +16,8 @@ DruidManaBar.lua
 GearDurability.lua
 AlignGrid.lua
 HideGryphons.lua
+ItemLevel.lua
+MaxCameraZoom.lua
+NameplateScaling.lua
+
 Settings.lua
