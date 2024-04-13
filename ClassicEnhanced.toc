@@ -19,5 +19,6 @@ HideGryphons.lua
 ItemLevel.lua
 MaxCameraZoom.lua
 NameplateScaling.lua
+ScreenGlow.lua
 
 Settings.lua
