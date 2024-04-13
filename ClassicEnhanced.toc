@@ -17,6 +17,7 @@ ChatClassColors.lua
 ChatIncreaseHistory.lua
 DruidManaBar.lua
 GearDurability.lua
+GroupFinder.lua
 HideGryphons.lua
 ItemLevel.lua
 MaxCameraZoom.lua
