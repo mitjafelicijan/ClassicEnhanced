@@ -15,10 +15,8 @@ if feature.enabled then
   feature.frame:RegisterEvent("ADDON_LOADED")
   feature.frame:RegisterEvent("MODIFIER_STATE_CHANGED")
 
-  feature.frame.grid = nil
-
   feature.frame:SetScript("OnEvent", function(self, event)
-    if event == "ADDON_LOADED" and grid == nil then
+    if event == "ADDON_LOADED" then
       feature.frame.grid = CreateFrame("Frame")
       feature.frame.grid:Hide()
       feature.frame.grid:SetAllPoints(UIParent)
@@ -51,5 +49,7 @@ if feature.enabled then
     else
       feature.frame.grid:Hide()
     end
+
+    self:UnregisterEvent("ADDON_LOADED")
   end)
 end
