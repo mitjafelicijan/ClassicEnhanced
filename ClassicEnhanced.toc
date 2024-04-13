@@ -8,4 +8,7 @@ Config.lua
 PowerBarsColor.lua
 AutoRepair.lua
 ChatArrowKeys.lua
+ChatIncreaseHistory.lua
+BagSearch.lua
+CastbarPosition.lua
 Settings.lua
