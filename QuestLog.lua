@@ -6,7 +6,6 @@ local feature = {
   enabled = true,
   frame = nil,
   config = {
-    reshaped = false,
     additionalQuests = 6
   }
 }
@@ -18,8 +17,7 @@ if feature.enabled then
   feature.frame:RegisterEvent("ADDON_LOADED")
 
   feature.frame:SetScript("OnEvent", function(self, event)
-
-    if not feature.config.reshaped then
+    if event == "ADDON_LOADED" then
       QuestLogListScrollFrame:SetHeight(184)
       QuestLogListScrollFrame:SetWidth(301)
 
@@ -73,7 +71,7 @@ if feature.enabled then
         end
       end)
 
-      feature.config.reshaped = true
+      self:UnregisterEvent("ADDON_LOADED")
     end
   end)
 end
