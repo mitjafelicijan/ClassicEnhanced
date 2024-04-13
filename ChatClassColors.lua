@@ -1,35 +1,42 @@
 local _, ns = ...
 
-local feature = {
-  key = "ChatClassColors",
-  name = "Chat will have class colored player names.",
-  enabled = true,
+local feature = ns.Register({
+  identifier = "ChatClassColors",
+  description = "Chat will have class colored player names.",
+  category = "social",
   frame = nil,
   config = {}
-}
+})
 
-tinsert(ns.Features, feature)
+feature.frame = CreateFrame("Frame")
+feature.frame:RegisterEvent("ADDON_LOADED")
 
-if feature.enabled then
-  feature.frame = CreateFrame("Frame")
-  feature.frame:RegisterEvent("ADDON_LOADED")
-
-  feature.frame:SetScript("OnEvent", function(self, event)
-    if event == "ADDON_LOADED" then
-
-      -- Set to 1 and and false to restore defaults
-      
-      SetCVar("chatClassColorOverride", "0")
+feature.frame:SetScript("OnEvent", function(self, event)
+  if event == "ADDON_LOADED" then
+    if not ns.IsEnabled(feature.identifier) then
+      SetCVar("chatClassColorOverride", "1")
 
       for void, v in ipairs({"SAY", "EMOTE", "YELL", "GUILD", "OFFICER", "WHISPER", "PARTY", "PARTY_LEADER", "RAID", "RAID_LEADER", "RAID_WARNING", "INSTANCE_CHAT", "INSTANCE_CHAT_LEADER"}) do
-        SetChatColorNameByClass(v, true)
+        SetChatColorNameByClass(v, false)
       end
 
       for i = 1, 50 do
-        SetChatColorNameByClass("CHANNEL" .. i, true)
+        SetChatColorNameByClass("CHANNEL" .. i, false)
       end
 
-      self:UnregisterEvent("ADDON_LOADED")
+      return
     end
-  end)
-end
+
+    SetCVar("chatClassColorOverride", "0")
+
+    for void, v in ipairs({"SAY", "EMOTE", "YELL", "GUILD", "OFFICER", "WHISPER", "PARTY", "PARTY_LEADER", "RAID", "RAID_LEADER", "RAID_WARNING", "INSTANCE_CHAT", "INSTANCE_CHAT_LEADER"}) do
+      SetChatColorNameByClass(v, true)
+    end
+
+    for i = 1, 50 do
+      SetChatColorNameByClass("CHANNEL" .. i, true)
+    end
+
+    self:UnregisterEvent("ADDON_LOADED")
+  end
+end)

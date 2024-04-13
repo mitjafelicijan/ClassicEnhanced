@@ -1,22 +1,21 @@
 local _, ns = ...
 
-local feature = {
-  key = "ScreenGlow",
-  name = "Disable screen glow which makes the environment less hazy.",
-  enabled = true,
+local feature = ns.Register({
+  identifier = "ScreenGlow",
+  description = "Disable screen glow which makes the environment less hazy.",
+  category = "utility",
   frame = nil,
   config = {}
-}
+})
 
-tinsert(ns.Features, feature)
+feature.frame = CreateFrame("Frame")
+feature.frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
-if feature.enabled then
-  feature.frame = CreateFrame("Frame")
-  feature.frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+feature.frame:SetScript("OnEvent", function(self, event)
+  if not ns.IsEnabled(feature.identifier) then
+    ConsoleExec("ffxGlow 1")
+    return
+  end
 
-  feature.frame:SetScript("OnEvent", function(self, event)
-    ConsoleExec("ffxGlow 0")
-  end)
-else
-  ConsoleExec("ffxGlow 1")
-end
+  ConsoleExec("ffxGlow 0")
+end)

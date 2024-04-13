@@ -1,52 +1,52 @@
 local _, ns = ...
 
-local feature = {
-  key = "GearDurability",
-  name = "Calculates equiped gear durability and displays it on character panel.",
-  enabled = true,
+local feature = ns.Register({
+  identifier = "GearDurability",
+  description = "Calculates equiped gear durability and displays it on character panel.",
+  category = "interface",
   frame = nil,
   config = {}
-}
+})
 
-tinsert(ns.Features, feature)
+feature.frame = CreateFrame("Frame")
+feature.frame:RegisterEvent("ADDON_LOADED")
 
-if feature.enabled then
-  feature.frame = CreateFrame("Frame")
-  feature.frame:RegisterEvent("ADDON_LOADED")
+local function calculateDurability()
+  local totalCurrentDurability = 0
+  local totalMaxDurability = 0
 
-  local function calculateDurability()
-    local totalCurrentDurability = 0
-    local totalMaxDurability = 0
-
-    -- Iterate over each equipment slot.
-    for slot = 1, 19 do
-    local current, max = GetInventoryItemDurability(slot)
-      if current and max then
-        totalCurrentDurability = totalCurrentDurability + current
-        totalMaxDurability = totalMaxDurability + max
-      end
+  -- Iterate over each equipment slot.
+  for slot = 1, 19 do
+  local current, max = GetInventoryItemDurability(slot)
+    if current and max then
+      totalCurrentDurability = totalCurrentDurability + current
+      totalMaxDurability = totalMaxDurability + max
     end
-
-    -- Calculate the durability percentage.
-    local durabilityPercentage = 0
-    if totalMaxDurability > 0 then
-      durabilityPercentage = (totalCurrentDurability / totalMaxDurability) * 100
-    end
-
-    return durabilityPercentage
   end
 
-  feature.frame:SetScript("OnEvent", function(self, event)
-    if event == "ADDON_LOADED" then
-      feature.frame.durabilityText = PaperDollFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-      feature.frame.durabilityText:SetPoint("TOPLEFT", 28, -410)
-      self:UnregisterEvent("ADDON_LOADED")
-    end
-  end)
+  -- Calculate the durability percentage.
+  local durabilityPercentage = 0
+  if totalMaxDurability > 0 then
+    durabilityPercentage = (totalCurrentDurability / totalMaxDurability) * 100
+  end
 
-  CharacterFrame:HookScript("OnShow", function()
-    if feature.frame.durabilityText then
-      feature.frame.durabilityText:SetText("Durability: " .. string.format("%.0f%%", calculateDurability()))
-    end
-  end)
+  return durabilityPercentage
 end
+
+feature.frame:SetScript("OnEvent", function(self, event)
+  if not ns.IsEnabled(feature.identifier) then return end
+
+  if event == "ADDON_LOADED" then
+    feature.frame.durabilityText = PaperDollFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    feature.frame.durabilityText:SetPoint("TOPLEFT", 28, -410)
+    
+    CharacterFrame:HookScript("OnShow", function()
+      if feature.frame.durabilityText then
+        feature.frame.durabilityText:SetText("Durability: " .. string.format("%.0f%%", calculateDurability()))
+      end
+    end)
+    
+    self:UnregisterEvent("ADDON_LOADED")
+  end
+end)
+

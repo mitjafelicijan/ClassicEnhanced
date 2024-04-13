@@ -6,22 +6,22 @@
 
 Config.lua
 
-PowerBarsColor.lua
+AlignGrid.lua
 AutoRepair.lua
-ChatArrowKeys.lua
-ChatIncreaseHistory.lua
 BagSearch.lua
 CastbarPosition.lua
+ChatArrowKeys.lua
+ChatClassColors.lua
+ChatIncreaseHistory.lua
 DruidManaBar.lua
 GearDurability.lua
-AlignGrid.lua
 HideGryphons.lua
 ItemLevel.lua
 MaxCameraZoom.lua
 NameplateScaling.lua
-ScreenGlow.lua
+PowerBarsColor.lua
 QuestLog.lua
+ScreenGlow.lua
 VendorPrice.lua
-ChatClassColors.lua
 
 Settings.lua
