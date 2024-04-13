@@ -7,4 +7,5 @@
 Config.lua
 PowerBarsColor.lua
 AutoRepair.lua
+ChatArrowKeys.lua
 Settings.lua
