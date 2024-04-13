@@ -13,4 +13,6 @@ BagSearch.lua
 CastbarPosition.lua
 DruidManaBar.lua
 GearDurability.lua
+AlignGrid.lua
+HideGryphons.lua
 Settings.lua

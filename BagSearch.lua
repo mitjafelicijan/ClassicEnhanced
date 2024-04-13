@@ -2,7 +2,7 @@ local _, ns = ...
 
 local feature = {
   key = "BagSearch",
-  name = "Adds ability to search your bags.",
+  name = "Adds ability to search your equiped bags and bank bags.",
   enabled = true,
   frame = nil,
   config = {}
