@@ -39,7 +39,9 @@ if feature.enabled then
   feature.frame:SetScript("OnEvent", function(self, event)
     if event == "ADDON_LOADED" then
       feature.frame.durabilityText = PaperDollFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  		feature.frame.durabilityText:SetPoint("TOPLEFT", 28, -410)
+      feature.frame.durabilityText:SetPoint("TOPLEFT", 28, -410)
+
+      self:UnregisterEvent("ADDON_LOADED")
     end
   end)
 

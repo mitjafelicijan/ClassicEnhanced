@@ -15,15 +15,17 @@ if feature.enabled then
   feature.frame:RegisterEvent("ADDON_LOADED")
 
   feature.frame:SetScript("OnEvent", function(self, event)
-    for i = 1, NUM_CHAT_WINDOWS, 1 do
-      _G["ChatFrame" .. i .. "EditBox"]:SetAltArrowKeyMode(false)
-    end
-
-    hooksecurefunc("FCF_OpenTemporaryWindow", function()
-      local cf = FCF_GetCurrentChatFrame():GetName() or nil
-      if cf then
-        _G[cf .. "EditBox"]:SetAltArrowKeyMode(false)
+    if event == "ADDON_LOADED" then
+      for i = 1, NUM_CHAT_WINDOWS, 1 do
+        _G["ChatFrame" .. i .. "EditBox"]:SetAltArrowKeyMode(false)
       end
-    end)
+
+      hooksecurefunc("FCF_OpenTemporaryWindow", function()
+        local cf = FCF_GetCurrentChatFrame():GetName() or nil
+        if cf then _G[cf .. "EditBox"]:SetAltArrowKeyMode(false) end
+      end)
+
+      self:UnregisterEvent("ADDON_LOADED")
+    end
   end)
 end

@@ -17,12 +17,10 @@ if feature.enabled then
   feature.frame:RegisterEvent("UNIT_MAXPOWER")
   feature.frame:RegisterEvent("UNIT_POWER_UPDATE")
 
-  feature.frame.bar = nil
-
   feature.frame:SetScript("OnEvent", function(self, event)
-    local _, class = UnitClass("player")
-    if class == "DRUID" then
-      if event == "ADDON_LOADED" and not feature.frame.bar then
+    if event == "ADDON_LOADED" then
+      local _, class = UnitClass("player")
+      if class == "DRUID" then
         feature.frame.bar = CreateFrame("StatusBar", nil, PlayerFrame, "TextStatusBar")
         feature.frame.bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
         feature.frame.bar:SetSize(104, 10)
@@ -52,10 +50,14 @@ if feature.enabled then
         feature.frame.bar.DefaultBorderRight:SetPoint("TOPRIGHT", 8, 0)
 
         feature.frame.bar:SetMinMaxValues(0, UnitPowerMax("player", 0))
-      else
         feature.frame.bar:SetValue(UnitPower("player", 0))
-      end
 
+        -- Hide the additional bar if not in shapeshifting form on load.
+        if GetShapeshiftForm() == 0 then feature.frame.bar:Hide() end
+      end
+    
+      self:UnregisterEvent("ADDON_LOADED")
+    else
       -- Toggles additional mana bar only in shapeshifting form.
       local form = GetShapeshiftForm()
       if feature.frame.bar then
