@@ -12,4 +12,5 @@ ChatIncreaseHistory.lua
 BagSearch.lua
 CastbarPosition.lua
 DruidManaBar.lua
+GearDurability.lua
 Settings.lua

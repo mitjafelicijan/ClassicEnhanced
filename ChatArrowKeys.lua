@@ -12,7 +12,7 @@ tinsert(ns.Features, feature)
 
 if feature.enabled then
   feature.frame = CreateFrame("Frame")
-  feature.frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+  feature.frame:RegisterEvent("ADDON_LOADED")
 
   feature.frame:SetScript("OnEvent", function(self, event)
     for i = 1, NUM_CHAT_WINDOWS, 1 do
