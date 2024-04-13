@@ -4,6 +4,8 @@
 
 *Compatible with Season of Discovery.*
 
+Get it on https://legacy.curseforge.com/wow/addons/classic-enchanced.
+
 ## Features
 
 - Makes mana bar lighter blue color for better visibility.
