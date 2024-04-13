@@ -54,6 +54,25 @@ if feature.enabled then
       QuestLogDetailScrollFrame:SetWidth(300)
       QuestLogDetailScrollFrame:SetHeight(170)
 
+      -- Show quest level in quest log detail frame.
+      hooksecurefunc("QuestLog_UpdateQuestDetails", function()
+        local quest = GetQuestLogSelection()
+        if quest then
+          local title, level, suggestedGroup = GetQuestLogTitle(quest)
+          if title and level then
+            if suggestedGroup then
+              if suggestedGroup == LFG_TYPE_DUNGEON then level = level .. "D"
+              elseif suggestedGroup == RAID then level = level .. "R"
+              elseif suggestedGroup == ELITE then level = level .. "+"
+              elseif suggestedGroup == GROUP then level = level .. "+"
+              elseif suggestedGroup == PVP then level = level .. "P"
+              end
+            end
+            QuestLogQuestTitle:SetText("[" .. level .. "] " .. title)
+          end
+        end
+      end)
+
       feature.config.reshaped = true
     end
   end)
