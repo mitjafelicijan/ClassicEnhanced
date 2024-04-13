@@ -1,10 +1,10 @@
 ## Interface: 11502
 ## Title: Classic Enchanced
-## Version: 1.0.0
+## Notes: Enhancements for WoW Classic Client.
+## Version: 1.0.1
 ## Author: Mitja Felicijan
 ## SavedVariablesPerCharacter: ClassicEnhancedDB
-
-
+## X-Curse-Project-ID: 1002642
 
 Config.lua
 
