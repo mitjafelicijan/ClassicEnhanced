@@ -22,5 +22,6 @@ NameplateScaling.lua
 ScreenGlow.lua
 QuestLog.lua
 VendorPrice.lua
+ChatClassColors.lua
 
 Settings.lua
