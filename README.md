@@ -1,6 +1,6 @@
 # Enhancement for World of Warcraft Classic
 
-<img width="1369" alt="Screenshot 2024-04-13 at 12 39 18" src="https://github.com/mitjafelicijan/ClassicEnhanced/assets/296714/553d41fa-3b38-4e4e-82b1-64ea11fd4e19">
+<img width="950" alt="Screenshot 2024-04-13 at 13 14 24" src="https://github.com/mitjafelicijan/ClassicEnhanced/assets/296714/ece39eb6-1189-4b7f-a600-44d04c66a524">
 
 *Compatible with Season of Discovery.*
 
