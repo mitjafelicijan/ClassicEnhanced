@@ -15,7 +15,10 @@ if feature.enabled then
   feature.frame:RegisterEvent("ADDON_LOADED")
 
   feature.frame:SetScript("OnEvent", function(self, event)
-    MainMenuBarLeftEndCap:Hide()
-    MainMenuBarRightEndCap:Hide()
+    if event == "ADDON_LOADED" then
+      MainMenuBarLeftEndCap:Hide()
+      MainMenuBarRightEndCap:Hide()
+      self:UnregisterEvent("ADDON_LOADED")
+    end
   end)
 end
