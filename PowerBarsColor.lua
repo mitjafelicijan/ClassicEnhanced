@@ -5,9 +5,7 @@ local feature = {
   name = "Changes default colors of power bars such as mana.",
   enabled = true,
   frame = nil,
-  config = {
-    manaColor = { r = 0.0, g = 0.6, b = 1 }
-  }
+  config = {}
 }
 
 tinsert(ns.Features, feature)
@@ -16,9 +14,9 @@ if feature.enabled then
   local function RecolorUnitFrameManaBar(frame)
     if frame then
       frame:SetStatusBarColor(
-        feature.config.manaColor.r,
-        feature.config.manaColor.g,
-        feature.config.manaColor.b)
+        ns.Config.ManaBarColor.r,
+        ns.Config.ManaBarColor.g,
+        ns.Config.ManaBarColor.b)
     end
   end
   

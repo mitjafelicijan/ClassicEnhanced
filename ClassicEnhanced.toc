@@ -11,4 +11,5 @@ ChatArrowKeys.lua
 ChatIncreaseHistory.lua
 BagSearch.lua
 CastbarPosition.lua
+DruidManaBar.lua
 Settings.lua
