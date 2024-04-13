@@ -2,7 +2,7 @@ local _, ns = ...
 
 local feature = ns.Register({
   identifier = "QuestLog",
-  description = "Increases the height and number of quest log selection list.",
+  description = "Increases the height and number of Quest Log selection list.",
   category = "interface",
   frame = nil,
   config = {

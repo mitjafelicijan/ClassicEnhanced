@@ -9,7 +9,7 @@ local feature = ns.Register({
 })
 
 feature.frame = CreateFrame("Frame")
-feature.frame:RegisterEvent("ADDON_LOADED")
+feature.frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 feature.frame:RegisterEvent("UNIT_DISPLAYPOWER")
 feature.frame:RegisterEvent("UNIT_MAXPOWER")
 feature.frame:RegisterEvent("UNIT_POWER_UPDATE")
@@ -17,7 +17,7 @@ feature.frame:RegisterEvent("UNIT_POWER_UPDATE")
 feature.frame:SetScript("OnEvent", function(self, event)
   if not ns.IsEnabled(feature.identifier) then return end
 
-  if event == "ADDON_LOADED" then
+  if event == "PLAYER_ENTERING_WORLD" then
     local _, class = UnitClass("player")
     if class == "DRUID" then
       feature.frame.bar = CreateFrame("StatusBar", nil, PlayerFrame, "TextStatusBar")
@@ -54,8 +54,6 @@ feature.frame:SetScript("OnEvent", function(self, event)
       -- Hide the additional bar if not in shapeshifting form on load.
       if GetShapeshiftForm() == 0 then feature.frame.bar:Hide() end
     end
-  
-    self:UnregisterEvent("ADDON_LOADED")
   else
     -- Toggles additional mana bar only in shapeshifting form.
     local form = GetShapeshiftForm()

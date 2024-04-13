@@ -1,8 +1,10 @@
-## Interface: 11500
+## Interface: 11502
 ## Title: Classic Enchanced
 ## Version: 1.0.0
 ## Author: Mitja Felicijan
 ## SavedVariablesPerCharacter: ClassicEnhancedDB
+
+
 
 Config.lua
 
