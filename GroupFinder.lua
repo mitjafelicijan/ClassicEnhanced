@@ -9,40 +9,50 @@ local feature = ns.Register({
     movable = false,
     windowWidth = 420,
     windowHeight = 540,
+    classColor = {
+      ["Warrior"] = "ffc79c6e",
+      ["Paladin"] = "fff58cba",
+      ["Hunter"] = "ffabd473",
+      ["Rogue"] = "fffff569",
+      ["Priest"] = "ffffffff",
+      ["Shaman"] = "fff58cba",
+      ["Mage"] = "ff69ccf0",
+      ["Warlock"] = "ff9482c9",
+      ["Druid"] = "ffff7d0a",
+    },
     listings = {
       -- Dungeons
-      { id = "rfc", list = {}, level = "13-16", type = "dungeon", name = "Ragefire Chasm", keywords = {"rfc"} },
-      { id = "dm",  list = {}, level = "17-21", type = "dungeon", name = "Deadmines",  keywords = {"dm", "vc"} },
-      { id = "wc", list = {}, level = "17-23", type = "dungeon", name = "Wailing Caverns",  keywords = {"wc"} },
-      { id = "sfk", list = {}, level = "18-23", type = "dungeon", name = "Shadowfang Keep",  keywords = {"sfk"} },
-      { id = "bfd", list = {}, level = "20-27", type = "dungeon", name = "Blackfathom Deeps",  keywords = {"bfd"} },
-      { id = "stocks", list = {}, level = "23-30", type = "dungeon", name = "The Stockade",  keywords = {"stocks"} },
-      { id = "rfk", list = {}, level = "25-32", type = "dungeon", name = "Razorfen Kraul",  keywords = {"rfk"} },
-      { id = "gnomer", list = {}, level = "28-35", type = "dungeon", name = "Gnomeregan",  keywords = {"gnomer", "gnomeregan"} },
-      { id = "smg", list = {}, level = "29-35", type = "dungeon", name = "Scarlet Monastery Graveyard",  keywords = {"sm"} },
-      { id = "sml", list = {}, level = "31-37", type = "dungeon", name = "Scarlet Monastery Library",  keywords = {"sm"} },
-      { id = "smc", list = {}, level = "36-42", type = "dungeon", name = "Scarlet Monastery Cathedral",  keywords = {"sm"} },
-      { id = "rfd", list = {}, level = "37-43", type = "dungeon", name = "Razorfen Downs",  keywords = {"rfd"} },
-      { id = "ulda", list = {}, level = "41-47", type = "dungeon", name = "Uldaman",  keywords = {"ulda"} },
-      { id = "zf", list = {}, level = "44-49", type = "dungeon", name = "Zul'Farrak",  keywords = {"zf"} },
-      { id = "mara", list = {}, level = "47-52", type = "dungeon", name = "Maraudon",  keywords = {"mara", "maraudon"} },
-      { id = "brd", list = {}, level = "49-53", type = "dungeon", name = "Blackrock Depths",  keywords = {"brd"} },
-      { id = "dme", list = {}, level = "55-60", type = "dungeon", name = "Dire Maul",  keywords = {"dme", "dmw", "dmn"} },
-      { id = "strat", list = {}, level = "55-60", type = "dungeon", name = "Stratholme",  keywords = {"strat"} },
-      { id = "scholo", list = {}, level = "55-60", type = "dungeon", name = "Scholomance",  keywords = {"scholo"} },
-      { id = "lbrs", list = {}, level = "55-60", type = "dungeon", name = "Lower Blackrock Spire",  keywords = {"lbrs"} },
-      { id = "ubrs", list = {}, level = "55-60", type = "dungeon", name = "Upper Blackrock Spire",  keywords = {"ubrs"} },
-
+      { id = "ragefire-chasm", list = {}, level = "13-16", type = "dungeon", name = "Ragefire Chasm", keywords = {"rfc", "ragefire", "chasm"} },
+      { id = "deadmines", list = {}, level = "17-21", type = "dungeon", name = "Deadmines",  keywords = {"deadmines", "vc"} },
+      { id = "wailing-caverns", list = {}, level = "17-23", type = "dungeon", name = "Wailing Caverns",  keywords = {"wc", "wailing"} },
+      { id = "shadowfang-keep", list = {}, level = "18-23", type = "dungeon", name = "Shadowfang Keep",  keywords = {"sfk", "arugal", "shadowfang"} },
+      { id = "blackfathom-deeps", list = {}, level = "20-27", type = "dungeon", name = "Blackfathom Deeps",  keywords = {"bfd", "blackfathom", "deeps"} },
+      { id = "the-stockade", list = {}, level = "23-30", type = "dungeon", name = "The Stockade",  keywords = {"stocks", "stockades"} },
+      { id = "razorfen-kraul", list = {}, level = "25-32", type = "dungeon", name = "Razorfen Kraul",  keywords = {"rfk", "kraul"} },
+      { id = "gnomeregan", list = {}, level = "28-35", type = "dungeon", name = "Gnomeregan",  keywords = {"gnomer", "gnomeregan"} },
+      { id = "scarlet-monastery-graveyard", list = {}, level = "29-35", type = "dungeon", name = "Scarlet Monastery Graveyard",  keywords = {"sm", "gy"} },
+      { id = "scarlet-monastery-library", list = {}, level = "31-37", type = "dungeon", name = "Scarlet Monastery Library",  keywords = {"sm", "lib"} },
+      { id = "scarlet-monastery-cathedral", list = {}, level = "36-42", type = "dungeon", name = "Scarlet Monastery Cathedral",  keywords = {"sm", "cath"} },
+      { id = "razorfen-downs", list = {}, level = "37-43", type = "dungeon", name = "Razorfen Downs",  keywords = {"rfd", "downs"} },
+      { id = "uldaman", list = {}, level = "41-47", type = "dungeon", name = "Uldaman",  keywords = {"ulda", "uld", "uldman", "uldaman"} },
+      { id = "zul-farrak", list = {}, level = "44-49", type = "dungeon", name = "Zul'Farrak",  keywords = {"zf", "farrak", "zulfarrak"} },
+      { id = "maraudon", list = {}, level = "47-52", type = "dungeon", name = "Maraudon",  keywords = {"mara", "maraudon", "purple", "orange", "inner", "wicked", "grotto", "foulspore"} },
+      { id = "blackrock-depths", list = {}, level = "49-53", type = "dungeon", name = "Blackrock Depths",  keywords = {"brd"} },
+      { id = "dire-maul", list = {}, level = "55-60", type = "dungeon", name = "Dire Maul",  keywords = {"dme", "dmw", "dmn"} },
+      { id = "stratholme", list = {}, level = "55-60", type = "dungeon", name = "Stratholme",  keywords = {"strat"} },
+      { id = "scholomance", list = {}, level = "55-60", type = "dungeon", name = "Scholomance",  keywords = {"scholo"} },
+      { id = "lower-blackrock-spire", list = {}, level = "55-60", type = "dungeon", name = "Lower Blackrock Spire",  keywords = {"lbrs"} },
+      { id = "upper-blackrock-spire", list = {}, level = "55-60", type = "dungeon", name = "Upper Blackrock Spire",  keywords = {"ubrs"} },
       -- Raids
-      { id = "st", list = {}, level = "50", type = "raid", name = "Sunken Temple",  keywords = {"sunken"} },
-      { id = "mc", list = {}, level = "60", type = "raid", name = "Molten Core",  keywords = {} },
-      { id = "ol", list = {}, level = "60", type = "raid", name = "Onyxia's Lair",  keywords = {} },
-      { id = "bw", list = {}, level = "60", type = "raid", name = "Blackwing Lair",  keywords = {} },
-      { id = "dn", list = {}, level = "60", type = "raid", name = "Dragons of Nightmare",  keywords = {} },
-      { id = "zg", list = {}, level = "60", type = "raid", name = "Zul'Gurub",  keywords = {} },
-      { id = "raq", list = {}, level = "60", type = "raid", name = "Ruins of Ahn'Qiraj",  keywords = {} },
-      { id = "taq", list = {}, level = "60", type = "raid", name = "Temple of Ahn'Qiraj",  keywords = {} },
-      { id = "nax", list = {}, level = "60", type = "raid", name = "Naxxramas",  keywords = {} },
+      { id = "sunken-temple", list = {}, level = "50", type = "raid", name = "Sunken Temple",  keywords = {"sunken"} },
+      { id = "molten-core", list = {}, level = "60", type = "raid", name = "Molten Core",  keywords = {"mc"} },
+      { id = "onyxias-lair", list = {}, level = "60", type = "raid", name = "Onyxia's Lair",  keywords = {"onyxia"} },
+      { id = "blackwing-lair", list = {}, level = "60", type = "raid", name = "Blackwing Lair",  keywords = {"blackwing"} },
+      { id = "dragons-of-nightmare", list = {}, level = "60", type = "raid", name = "Dragons of Nightmare",  keywords = {"dragons"} },
+      { id = "zul-gurub", list = {}, level = "60", type = "raid", name = "Zul'Gurub",  keywords = {"zg"} },
+      { id = "ruins-of-ahn-qiraj", list = {}, level = "60", type = "raid", name = "Ruins of Ahn'Qiraj",  keywords = {"aq", "ruins"} },
+      { id = "temple-of-ahn-qiraj", list = {}, level = "60", type = "raid", name = "Temple of Ahn'Qiraj",  keywords = {"aq", "temple"} },
+      { id = "naxxramas", list = {}, level = "60", type = "raid", name = "Naxxramas",  keywords = {"naxx"} },
     }
   }
 })
@@ -55,7 +65,7 @@ feature.frame:SetScript("OnEvent", function(self, event)
   
   if event == "ADDON_LOADED" then
     
-    feature.frame.window = CreateFrame("Frame", "MyAddonFrame", UIParent)
+    feature.frame.window = CreateFrame("Frame", "GroupFinder", UIParent)
     feature.frame.window:SetSize(350, 512)
     feature.frame.window:SetPoint("CENTER", 0, 0)
     feature.frame.window:SetMovable(true)
@@ -87,25 +97,83 @@ feature.frame:SetScript("OnEvent", function(self, event)
     feature.frame.window:Show()
 
     -- Create the dropdown frame
-    feature.frame.window.dropdown = CreateFrame("Frame", "MyDropdown", feature.frame.window, "UIDropDownMenuTemplate")
+    feature.frame.window.dropdown = CreateFrame("Frame", "InstanceDropDown", feature.frame.window, "UIDropDownMenuTemplate")
     feature.frame.window.dropdown:SetPoint("TOPRIGHT", 0, -50)
     feature.frame.window.dropdown:SetSize(230, 40)
 
-    local function InitializeDropdown(self, level)
-      local info = UIDropDownMenu_CreateInfo()
+    local function GetSelectedDropdownItems()
+      local items = {}
       for _, item in ipairs(feature.config.listings) do
-        local menuItem = item
-        info.text = item.name .. " (" .. item.level .. ")"
-        info.checked = item.checked
-        info.func = (function(menuItem)
-          return function(_, _, _, value)
-            menuItem.checked = value
-            print("ID:", menuItem.id, menuItem.name, "checked:", menuItem.checked)
+        if item.checked then
+          tinsert(items, item.id)
+        end
+      end
+      return items
+    end
+
+    local function InitializeDropdown(self, level)
+      -- Dungeons
+      local title = UIDropDownMenu_CreateInfo()
+      title.text = "Dungeons"
+      title.isTitle = true
+      UIDropDownMenu_AddButton(title, level)
+ 
+      for _, item in ipairs(feature.config.listings) do
+        if item.type == "dungeon" then
+          local info = UIDropDownMenu_CreateInfo()
+          local menuItem = item
+          info.text = item.name .. " (" .. item.level .. ")"
+          info.checked = item.checked
+          info.keepShownOnClick = true
+          info.isNotRadio = true
+
+          info.func = (function(menuItem)
+            return function(_, _, _, value)
+              menuItem.checked = value
+              ns.KVStorage.Set("LFGSelected", GetSelectedDropdownItems())
+            end
+          end)(item)
+
+          local previousSessionSelection = ns.KVStorage.Get("LFGSelected")
+          if ns.Helpers.TableContainsValue(previousSessionSelection, item.id) then
+            info.checked = true
+            item.checked = true
           end
-        end)(item)
-        info.keepShownOnClick = true
-        info.isNotRadio = true
-        UIDropDownMenu_AddButton(info, level)
+
+          UIDropDownMenu_AddButton(info, level)
+        end
+      end
+      
+      -- Raids
+      local title = UIDropDownMenu_CreateInfo()
+      title.text = "Raids"
+      title.isTitle = true
+      UIDropDownMenu_AddButton(title, level)
+ 
+      for _, item in ipairs(feature.config.listings) do
+        if item.type == "raid" then
+          local info = UIDropDownMenu_CreateInfo()
+          local menuItem = item
+          info.text = item.name .. " (" .. item.level .. ")"
+          info.checked = item.checked
+          info.keepShownOnClick = true
+          info.isNotRadio = true
+
+          info.func = (function(menuItem)
+            return function(_, _, _, value)
+              menuItem.checked = value
+              ns.KVStorage.Set("LFGSelected", GetSelectedDropdownItems())
+            end
+          end)(item)
+
+          local previousSessionSelection = ns.KVStorage.Get("LFGSelected")
+          if ns.Helpers.TableContainsValue(previousSessionSelection, item.id) then
+            info.checked = true
+            item.checked = true
+          end
+
+          UIDropDownMenu_AddButton(info, level)
+        end
       end
     end
 
@@ -113,19 +181,17 @@ feature.frame:SetScript("OnEvent", function(self, event)
     UIDropDownMenu_SetText(feature.frame.window.dropdown, "Dungeons & Raids")
     UIDropDownMenu_SetWidth(feature.frame.window.dropdown, 230)
 
-    feature.frame.window.refresh = CreateFrame("Button", "MyButton", feature.frame.window, "UIPanelButtonTemplate")
+    feature.frame.window.refresh = CreateFrame("Button", "RefreshButton", feature.frame.window, "UIPanelButtonTemplate")
     feature.frame.window.refresh:SetText("Refresh")
     feature.frame.window.refresh:SetPoint("BOTTOMLEFT", 17, 17)
     feature.frame.window.refresh:SetSize(123, 17)
     feature.frame.window.refresh:SetScript("OnClick", function()
-      print("Selected items:")
-      for _, item in ipairs(feature.config.listings) do
-        if item.checked then
-          print(item.id, item.name)
-        end
+      print("selected:")
+      for _, id in pairs(GetSelectedDropdownItems()) do
+        print(" - " .. id)
       end
     end)
-    
+
     -- Register slash command.
     SLASH_TweaksLFG1 = "/lfg"
     SlashCmdList["TweaksLFG"] = function(msg, editbox)
