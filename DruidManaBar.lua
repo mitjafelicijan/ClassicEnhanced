@@ -58,6 +58,7 @@ feature.frame:SetScript("OnEvent", function(self, event)
     -- Toggles additional mana bar only in shapeshifting form.
     local form = GetShapeshiftForm()
     if feature.frame.bar then
+      feature.frame.bar:SetValue(UnitPower("player", 0))
       if form == 0 then feature.frame.bar:Hide() else feature.frame.bar:Show() end
     end
   end
