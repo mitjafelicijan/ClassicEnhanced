@@ -23,3 +23,43 @@ ns.IsEnabled = function(identifier)
     return ClassicEnhancedDB[identifier]
   end
 end
+
+ns.KVStorage = {}
+
+ns.KVStorage.defaults = function()
+  ClassicEnhancedDB.KV = {}
+end
+
+ns.KVStorage.Get = function(key)
+  if not ClassicEnhancedDB.KV then ns.KVStorage.defaults() end
+
+  if key and ClassicEnhancedDB.KV[key] then
+    return ClassicEnhancedDB.KV[key]
+  end
+end
+
+ns.KVStorage.Set = function(key, value)
+  if not ClassicEnhancedDB.KV then ns.KVStorage.defaults() end
+  
+  if key then
+    ClassicEnhancedDB.KV[key] = value
+  end
+end
+
+ns.KVStorage.Del = function(key)
+  if not ClassicEnhancedDB.KV then ns.KVStorage.defaults() end
+
+  if key and ClassicEnhancedDB.KV[key] then
+    ClassicEnhancedDB.KV[key] = nil
+  end
+end
+
+ns.Helpers = {}
+
+ns.Helpers.TableContainsValue = function(table, value)
+  for _, v in pairs(table) do
+    if v == value then
+      return true
+    end
+  end
+end
