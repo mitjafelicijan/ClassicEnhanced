@@ -22,8 +22,8 @@ feature.frame:SetScript("OnEvent", function(self, event)
     if class == "DRUID" then
       feature.frame.bar = CreateFrame("StatusBar", nil, PlayerFrame, "TextStatusBar")
       feature.frame.bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-      feature.frame.bar:SetSize(104, 10)
-      feature.frame.bar:SetPoint("BOTTOMLEFT", 114, 23)
+      feature.frame.bar:SetSize(104, 9)
+      feature.frame.bar:SetPoint("BOTTOMLEFT", 114, 24)
       feature.frame.bar:SetStatusBarColor(ns.Config.ManaBarColor.r, ns.Config.ManaBarColor.g, ns.Config.ManaBarColor.b)
 
       feature.frame.bar.DefaultBackground = feature.frame.bar:CreateTexture(nil, "BACKGROUND")
