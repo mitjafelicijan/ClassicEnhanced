@@ -57,9 +57,11 @@ end
 ns.Helpers = {}
 
 ns.Helpers.TableContainsValue = function(table, value)
-  for _, v in pairs(table) do
-    if v == value then
-      return true
+  if table then
+    for _, v in pairs(table) do
+      if v == value then
+        return true
+      end
     end
   end
 end

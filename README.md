@@ -23,3 +23,7 @@ Get it on https://legacy.curseforge.com/wow/addons/classic-enchanced.
 - Draws a grid on a screen if Ctrl+Alt+Shift is being pressed.
 - Shows druid mana bar when in shapeshifting form.
 - Increases the list size of Quest Log.
+
+## Tools
+
+- https://github.com/Kanma/BLPConverter

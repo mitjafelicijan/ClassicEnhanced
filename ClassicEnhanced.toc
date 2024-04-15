@@ -6,8 +6,12 @@
 ## SavedVariablesPerCharacter: ClassicEnhancedDB
 ## X-Curse-Project-ID: 1002642
 
-Config.lua
 DevTools.lua
+Test\data1.lua
+
+Libs\MIA.lua
+
+Config.lua
 
 AlignGrid.lua
 AutoRepair.lua
