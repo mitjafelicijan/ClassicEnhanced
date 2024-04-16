@@ -58,7 +58,7 @@ local feature = ns.Register({
       rowHeight = 35,
       rowSpacer = 3,
     },
-    autoShow = false,
+    autoShow = true,
   },
   data = {
     listings = {},
@@ -76,11 +76,21 @@ feature.frame:SetScript("OnEvent", function(self, event)
     feature.frame.window = CreateFrame("Frame", "GroupFinder", UIParent)
     feature.frame.window:SetSize(512, 512)
     feature.frame.window:SetPoint("CENTER", 0, 0)
+    feature.frame.window:SetFrameStrata("HIGH")
+    feature.frame.window:SetToplevel(true)
     feature.frame.window:SetMovable(true)
     feature.frame.window:EnableMouse(true)
     feature.frame.window:RegisterForDrag("LeftButton")
     feature.frame.window:SetScript("OnDragStart", feature.frame.window.StartMoving)
     feature.frame.window:SetScript("OnDragStop", feature.frame.window.StopMovingOrSizing)
+
+    feature.frame.window:SetScript("OnShow", function(self)
+      PlaySound(SOUNDKIT.IG_MAINMENU_OPEN)
+    end)
+    
+    feature.frame.window:SetScript("OnHide", function(self)
+      PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
+    end)
 
     -- Create a texture to hold your background image
     feature.frame.window.background = feature.frame.window:CreateTexture(nil, "BACKGROUND")
@@ -119,7 +129,43 @@ feature.frame:SetScript("OnEvent", function(self, event)
           { key = "lfmOnly", label = "Looking for Man (LFM)" },
         }
 
+        local types= {
+          { key = "tank", label = "Tank" },
+          { key = "healer", label = "Healer" },
+          { key = "dps", label = "DPS" },
+        }
+
+        local title = UIDropDownMenu_CreateInfo()
+        title.text = "Listing types"
+        title.isTitle = true
+        title.notCheckable = true
+        UIDropDownMenu_AddButton(title, level)
+
         for _, option in pairs(options) do
+          local info = UIDropDownMenu_CreateInfo()
+          local menuItem = option
+          info.text = option.label
+          info.checked = option.checked
+          info.keepShownOnClick = true
+          info.isNotRadio = true
+
+          -- info.func = (function(menuItem)
+          --   return function(_, _, _, value)
+          --     menuItem.checked = value
+          --     ns.KVStorage.Set("LFGFilter", GetSelectedInstanceDropdownItems())
+          --   end
+          -- end)(item)
+          
+          UIDropDownMenu_AddButton(info, level)
+        end
+        
+        local title = UIDropDownMenu_CreateInfo()
+        title.text = "Roles"
+        title.isTitle = true
+        title.notCheckable = true
+        UIDropDownMenu_AddButton(title, level)
+        
+        for _, option in pairs(types) do
           local info = UIDropDownMenu_CreateInfo()
           local menuItem = option
           info.text = option.label
@@ -149,7 +195,7 @@ feature.frame:SetScript("OnEvent", function(self, event)
       feature.frame.window.instanceDropdown:SetPoint("TOPRIGHT", 8, -40)
       feature.frame.window.instanceDropdown:SetSize(230, 40)
 
-      local function GetSelectedInstanceDropdownItems()
+      function GetSelectedInstanceDropdownItems()
         local items = {}
         for _, item in ipairs(feature.config.listings) do
           if item.checked then
@@ -164,6 +210,7 @@ feature.frame:SetScript("OnEvent", function(self, event)
         local title = UIDropDownMenu_CreateInfo()
         title.text = "Dungeons"
         title.isTitle = true
+        title.notCheckable = true
         UIDropDownMenu_AddButton(title, level)
  
         for _, item in ipairs(feature.config.listings) do
@@ -196,6 +243,7 @@ feature.frame:SetScript("OnEvent", function(self, event)
         local title = UIDropDownMenu_CreateInfo()
         title.text = "Raids"
         title.isTitle = true
+        title.notCheckable = true
         UIDropDownMenu_AddButton(title, level)
  
         for _, item in ipairs(feature.config.listings) do
@@ -232,7 +280,7 @@ feature.frame:SetScript("OnEvent", function(self, event)
 
     feature.frame.window.scrollFrame = CreateFrame("ScrollFrame", nil, feature.frame.window, "UIPanelScrollFrameTemplate")
     feature.frame.window.scrollFrame:SetPoint("TOPLEFT", feature.frame.window, "TOPLEFT", 20, -78)
-    feature.frame.window.scrollFrame:SetPoint("BOTTOMRIGHT", feature.frame.window, "BOTTOMRIGHT", -35, 38)
+    feature.frame.window.scrollFrame:SetPoint("BOTTOMRIGHT", feature.frame.window, "BOTTOMRIGHT", -35, 15)
 
     -- local texture = feature.frame.window.scrollFrame:CreateTexture(nil, "BACKGROUND")
     -- texture:SetAllPoints(true)
@@ -311,7 +359,7 @@ feature.frame:SetScript("OnEvent", function(self, event)
         
         local class = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         class:SetText("(" .. listing.class .. " " .. listing.race .. ")")
-        class:SetPoint("TOPLEFT", 42 + name:GetWidth() + 5, -5)
+        class:SetPoint("TOPLEFT", 42 + name:GetWidth() + 5, -6)
         class:SetTextColor(80/255, 80/255, 80/255, 1)
         class:SetShadowColor(0, 0, 0, 1)
         class:SetFont(class:GetFont(), 10)
@@ -481,9 +529,10 @@ feature.frame:SetScript("OnEvent", function(self, event)
       createListingFrame(child, idx, listing)
     end
 
+    -- Refresh current listing
     feature.frame.window.refresh = CreateFrame("Button", "RefreshButton", feature.frame.window, "UIPanelButtonTemplate")
     feature.frame.window.refresh:SetText("Refresh")
-    feature.frame.window.refresh:SetPoint("BOTTOMRIGHT", -9, 15)
+    feature.frame.window.refresh:SetPoint("BOTTOMRIGHT", 200, 15)
     feature.frame.window.refresh:SetSize(79, 17)
     feature.frame.window.refresh:SetScript("OnClick", function()
       print("selected:")
@@ -506,12 +555,46 @@ feature.frame:SetScript("OnEvent", function(self, event)
       end
     end)
 
+    -- Listening to incoming messages animation.
+    -- do
+    --   feature.frame.window.progress = CreateFrame("Frame", nil, feature.frame.window)
+    --   feature.frame.window.progress:SetSize(160, 16)
+    --   feature.frame.window.progress:SetPoint("BOTTOMLEFT", 19, 15)
+    --   feature.frame.window.progress:SetFrameStrata("LOW")
+
+    --   local background = feature.frame.window.progress:CreateTexture(nil, "BACKGROUND")
+    --   background:SetAllPoints(true)
+    --   background:SetColorTexture(0, 0, 0, 1)
+
+    --   feature.frame.window.progress.bar = CreateFrame("StatusBar", nil, feature.frame.window.progress)
+    --   feature.frame.window.progress.bar:SetPoint("CENTER", 0, 0)
+    --   feature.frame.window.progress.bar:SetMinMaxValues(0, 100)
+    --   feature.frame.window.progress.bar:SetValue(70)
+    --   feature.frame.window.progress.bar:SetSize(feature.frame.window.progress:GetWidth(), 16)
+      
+    --   local texture = feature.frame.window.progress.bar:CreateTexture(nil, "BACKGROUND")
+    --   texture:SetAllPoints()
+    --   texture:SetColorTexture(1.00, 0.49, 0.04, 0.5) -- druid
+    --   feature.frame.window.progress.bar:SetStatusBarTexture(texture)
+
+    --   local function UpdateProgress()
+    --     local value = feature.frame.window.progress.bar:GetValue()
+    --     if value < 100 then
+    --       feature.frame.window.progress.bar:SetValue(value + 10)
+    --     else
+    --       feature.frame.window.progress.bar:SetValue(0)
+    --     end
+    --   end
+
+    --   local timer = C_Timer.NewTicker(0.1, UpdateProgress)
+    -- end
+
     -- Add minimap button
     do
       local minimapButton = CreateFrame("Button", nil, Minimap)
       minimapButton:SetSize(32, 32)
       minimapButton:SetFrameStrata("MEDIUM")
-      minimapButton:SetPoint("LEFT", Minimap, "LEFT", -20, 0)
+      minimapButton:SetPoint("LEFT", Minimap, "LEFT", -20, 20)
       minimapButton:SetNormalTexture("Interface\\Addons\\ClassicEnhanced\\UI\\MinimapButton")
       minimapButton:SetHighlightTexture("Interface\\Addons\\ClassicEnhanced\\UI\\MinimapButton")
       minimapButton:GetHighlightTexture():SetBlendMode("ADD")
@@ -526,7 +609,11 @@ feature.frame:SetScript("OnEvent", function(self, event)
       end)
       
       minimapButton:SetScript("OnClick", function(self)
-        feature.frame.window:Show()
+        if feature.frame.window:IsShown() then
+          feature.frame.window:Hide()
+        else
+          feature.frame.window:Show()
+        end
       end)
     end
 
