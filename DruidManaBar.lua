@@ -23,6 +23,7 @@ feature.frame:SetScript("OnEvent", function(self, event)
       feature.frame.bar = CreateFrame("StatusBar", nil, PlayerFrame, "TextStatusBar")
       feature.frame.bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
       feature.frame.bar:SetSize(104, 10)
+      feature.frame.bar:SetPoint("TOPLEFT", PlayerFrame, "TOPLEFT", 114, -66);
       feature.frame.bar:SetStatusBarColor(ns.Config.ManaBarColor.r, ns.Config.ManaBarColor.g, ns.Config.ManaBarColor.b)
 
       feature.frame.bar.DefaultBackground = feature.frame.bar:CreateTexture(nil, "BACKGROUND")
@@ -56,7 +57,7 @@ feature.frame:SetScript("OnEvent", function(self, event)
   else
     -- Toggles additional mana bar only in shapeshifting form.
     local form = GetShapeshiftForm()
-    if feature.frame.bar then
+    if feature.frame and feature.frame.bar then
       feature.frame.bar:SetValue(UnitPower("player", 0))
       if form == 0 then feature.frame.bar:Hide() else feature.frame.bar:Show() end
     end
