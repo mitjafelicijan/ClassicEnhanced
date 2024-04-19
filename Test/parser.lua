@@ -19,7 +19,7 @@ function NonStd.String.trim(str)
 end
 
 -- Including test data from LFG group chat.
-require("data")
+require("data1")
 local messages = LFGChatDB
 
 local feature = {
