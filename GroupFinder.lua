@@ -58,21 +58,246 @@ local feature = ns.Register({
       rowHeight = 35,
       rowSpacer = 3,
     },
+    refreshInterval = 20,
     autoShow = true,
   },
   data = {
     listings = {},
+    refreshTicker = nil,
     onlyLFM = false,
+    precompiledInstances = {},
   }
 })
 
 feature.frame = CreateFrame("Frame")
 feature.frame:RegisterEvent("ADDON_LOADED")
+feature.frame:RegisterEvent("CHAT_MSG_CHANNEL")
 
-feature.frame:SetScript("OnEvent", function(self, event)
+local function createListingFrame(parent, idx, listing)
+  -- Create the frame.
+  local row = CreateFrame("Frame", "ListingRow" .. idx, parent)
+  row:SetSize(parent:GetWidth(), (feature.config.listingDimension.rowHeight-feature.config.listingDimension.rowSpacer))
+  row:SetPoint("TOP", 0, -((idx-1) * feature.config.listingDimension.rowHeight))
+  row:EnableMouse(true)
+  row.data = listing
+
+  -- Right click starts whisper chat.
+  row:SetScript("OnMouseUp", function(self, button)
+    if button == "RightButton" then
+      ChatFrame_SendTell(listing.name)
+      ChatEdit_GetActiveWindow():SetFocus()
+    end
+  end)
+
+  -- Create the background texture.
+  local texture = row:CreateTexture(nil, "BACKGROUND")
+  texture:SetAllPoints(true)
+  texture:SetColorTexture(30/255, 80/255, 160/255, 0.07)
+  -- texture:SetColorTexture(0/255, 0/255, 0/255, 0.3)
+
+  -- Tooltip with the original message.
+  do
+    row.tooltipText = listing.message
+    row:SetScript("OnEnter", function(self)
+      texture:SetColorTexture(30/255, 80/255, 160/255, 0.3)
+      GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT")
+      GameTooltip:SetText(self.tooltipText, 1, 1, 1, 1, true)
+      GameTooltip:Show()
+    end)
+
+    row:SetScript("OnLeave", function(self)
+      texture:SetColorTexture(30/255, 80/255, 160/255, 0.05)
+      GameTooltip:Hide()
+    end)
+  end
+
+  -- Message type (LFG, LFM)
+  do
+    local icon = row:CreateTexture(nil, "OVERLAY")
+    icon:SetSize(32, 32)
+    icon:SetPoint("LEFT", 4, 0)
+    if listing.lfg then
+      icon:SetTexture("Interface\\FriendsFrame\\UI-Toast-FriendRequestIcon")
+    else
+      icon:SetTexture("Interface\\FriendsFrame\\UI-Toast-ChatInviteIcon")
+    end
+  end
+
+  -- Name, class and race
+  do
+    local name = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    name:SetText(listing.name)
+    name:SetPoint("TOPLEFT", 42, -5)
+
+    local nameColor = feature.config.classColor[listing.class]
+    name:SetTextColor(nameColor.r, nameColor.g, nameColor.b)
+    name:SetShadowColor(0, 0, 0, 1)
+    
+    local class = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    class:SetText("(" .. listing.class .. " " .. listing.race .. ")")
+    class:SetPoint("TOPLEFT", 42 + name:GetWidth() + 5, -6)
+    class:SetTextColor(80/255, 80/255, 80/255, 1)
+    class:SetShadowColor(0, 0, 0, 1)
+    class:SetFont(class:GetFont(), 10)
+  end
+
+  -- Instance name
+  do
+    local instanceName = nil
+    for _, item in pairs(feature.config.listings) do
+      if listing.instance == item.id then
+        instanceName = item.name
+        break
+      end
+    end
+    
+    local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetText(instanceName)
+    label:SetPoint("TOPLEFT", 42, -18)
+    label:SetTextColor(130/255, 130/255, 130/255, 1)
+    label:SetShadowColor(0, 0, 0, 1)
+    label:SetFont(label:GetFont(), 10)
+  end
+  
+  -- Invite to group button
+  do
+    local invite = CreateFrame("Button", "InviteToGroupButton" .. idx, row)
+    invite:SetText("Invite")
+    invite:SetPoint("RIGHT", -2, 0)
+    invite:SetSize(20, 32)
+    invite.data = listing
+
+    local texture = invite:CreateTexture(nil, "OVERLAY")
+    texture:SetAllPoints(true)
+    texture:SetSize(20, 32)
+    texture:SetTexture("Interface\\FriendsFrame\\TravelPass-Invite")
+    local left, right, top, bottom = MIA.Texture.calculateCoordinates(64, 128, 3, 34, 23, 66)
+    texture:SetTexCoord(left, right, top, bottom)
+    
+    local textureHover = invite:CreateTexture(nil, "OVERLAY")
+    textureHover:SetAllPoints(true)
+    textureHover:SetSize(20, 32)
+    textureHover:SetTexture("Interface\\FriendsFrame\\TravelPass-Invite")
+    local left, right, top, bottom = MIA.Texture.calculateCoordinates(64, 128, 30, 0, 50, 32)
+    textureHover:SetTexCoord(left, right, top, bottom)
+    textureHover:Hide()
+
+    if listing.lfm then
+      texture:SetDesaturated(true)
+      texture:SetAlpha(0.3)
+    end
+
+    if listing.lfg then
+      invite:SetScript("OnEnter", function(self) textureHover:Show() end)
+      invite:SetScript("OnLeave", function(self) textureHover:Hide() end)
+      invite:SetScript("OnClick", function()
+        InviteUnit(listing.name)
+      end)
+    end
+  end
+
+  -- Checking if tank, healer or dps
+  do
+    local left, right, top, bottom = MIA.Texture.calculateCoordinates(64, 64, 0, 20, 20, 40)
+    local icon = row:CreateTexture(nil, "OVERLAY")
+    icon:SetSize(20, 20)
+    icon:SetPoint("RIGHT", -80, 0)
+    icon:SetTexture("Interface\\LFGFRAME\\UI-LFG-ICON-PORTRAITROLES")
+    icon:SetTexCoord(left, right, top, bottom)
+    if not listing.tank then
+      icon:SetDesaturated(true)
+      icon:SetAlpha(0.3)
+    end
+    
+    local left, right, top, bottom = MIA.Texture.calculateCoordinates(64, 64, 20, 0, 40, 20)
+    local icon = row:CreateTexture(nil, "OVERLAY")
+    icon:SetSize(20, 20)
+    icon:SetPoint("RIGHT", -55, -1)
+    icon:SetTexture("Interface\\LFGFRAME\\UI-LFG-ICON-PORTRAITROLES")
+    icon:SetTexCoord(left, right, top, bottom)
+    if not listing.healer then
+      icon:SetDesaturated(true)
+      icon:SetAlpha(0.3)
+    end
+    
+    local left, right, top, bottom = MIA.Texture.calculateCoordinates(64, 64, 20, 20, 40, 40)
+    local icon = row:CreateTexture(nil, "OVERLAY")
+    icon:SetSize(20, 20)
+    icon:SetPoint("RIGHT", -30, -1)
+    icon:SetTexture("Interface\\LFGFRAME\\UI-LFG-ICON-PORTRAITROLES")
+    icon:SetTexCoord(left, right, top, bottom)
+    if not listing.dps then
+      icon:SetDesaturated(true)
+      icon:SetAlpha(0.3)
+    end
+  end
+end
+
+local function parseMessage(item)
+  local obj = {
+    lfg = false,
+    lfm = false,
+    healer = false,
+    dps = false,
+    tank = false,
+    instance = nil,
+    message = nil,
+    class = nil,
+    name = nil,
+    race = nil,
+    level = nil,
+  }
+
+  obj.class = item.class
+  obj.name = item.name
+  obj.race = item.race
+  obj.level = math.random(10, 60)
+
+  item.message = string.lower(item.message)
+  item.message = MIA.String.replace(item.message, "%d+", " ")
+  item.message = MIA.String.replace(item.message, "/", " ")
+  item.message = MIA.String.replace(item.message, ",", " ")
+  item.message = MIA.String.replace(item.message, "-", " ")
+
+  obj.message = item.message
+
+  -- Tokenizing the message.
+  local words = MIA.String.split(item.message, "%S+")
+
+  -- Checking fot LFG and LF/LFM and roles.
+  for _, word in pairs(words) do
+    if word == "lf" or word == "lfm" then obj.lfm = true end
+    if word == "lfg" then obj.lfg = true end
+    if word == "tank" then obj.tank = true end
+    if word == "heals" or word == "healer" then obj.healer = true end
+    if word == "dps" then obj.dps = true end
+  end
+
+  -- Check for instance only if LFG or LFM found.
+  if obj.lfg or obj.lfm then
+    for _, word in pairs(words) do
+      for key, instance in pairs(feature.data.precompiledInstances) do
+        if word == key then
+          obj.instance = instance
+          break
+        end
+      end
+    end
+  end
+
+  return obj
+end
+
+feature.frame:SetScript("OnEvent", function(self, event, ...)
   if not ns.IsEnabled(feature.identifier) then return end
   
-  if event == "ADDON_LOADED" then
+  if event == "ADDON_LOADED" then    
+    for _, instance in pairs(feature.config.listings) do
+      for _, keyword in pairs(instance.keywords) do
+        feature.data.precompiledInstances[keyword] = instance.id
+      end
+    end
+    
     feature.frame.window = CreateFrame("Frame", "GroupFinder", UIParent)
     feature.frame.window:SetSize(512, 512)
     feature.frame.window:SetPoint("CENTER", 0, 0)
@@ -282,319 +507,50 @@ feature.frame:SetScript("OnEvent", function(self, event)
     feature.frame.window.scrollFrame:SetPoint("TOPLEFT", feature.frame.window, "TOPLEFT", 20, -78)
     feature.frame.window.scrollFrame:SetPoint("BOTTOMRIGHT", feature.frame.window, "BOTTOMRIGHT", -35, 15)
 
-    -- local texture = feature.frame.window.scrollFrame:CreateTexture(nil, "BACKGROUND")
-    -- texture:SetAllPoints(true)
-    -- texture:SetColorTexture(255/255, 0/255, 0/255, 0.3)
-
     local child = CreateFrame("Frame", nil, feature.frame.window.scrollFrame)
     child:SetSize(feature.frame.window.scrollFrame:GetWidth(), feature.frame.window.scrollFrame:GetHeight() - 30)
     feature.frame.window.scrollFrame:SetScrollChild(child)
 
-    local precompiledInstances = {}
-    for _, instance in pairs(feature.config.listings) do
-      for _, keyword in pairs(instance.keywords) do
-        precompiledInstances[keyword] = instance.id
-      end
-    end
-
-    local function createListingFrame(parent, idx, listing)
-      -- Create the frame.
-      local row = CreateFrame("Frame", "ListingRow" .. idx, parent)
-      row:SetSize(parent:GetWidth(), (feature.config.listingDimension.rowHeight-feature.config.listingDimension.rowSpacer))
-      row:SetPoint("TOP", 0, -((idx-1) * feature.config.listingDimension.rowHeight))
-      row:EnableMouse(true)
-      row.data = listing
-
-      -- Right click starts whisper chat.
-      row:SetScript("OnMouseUp", function(self, button)
-        if button == "RightButton" then
-          ChatFrame_SendTell(listing.name)
-          ChatEdit_GetActiveWindow():SetFocus()
-        end
-      end)
-
-      -- Create the background texture.
-      local texture = row:CreateTexture(nil, "BACKGROUND")
-      texture:SetAllPoints(true)
-      texture:SetColorTexture(30/255, 80/255, 160/255, 0.07)
-      -- texture:SetColorTexture(0/255, 0/255, 0/255, 0.3)
-
-      -- Tooltip with the original message.
-      do
-        row.tooltipText = listing.message
-        row:SetScript("OnEnter", function(self)
-          texture:SetColorTexture(30/255, 80/255, 160/255, 0.3)
-          GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT")
-          GameTooltip:SetText(self.tooltipText, 1, 1, 1, 1, true)
-          GameTooltip:Show()
-        end)
-
-        row:SetScript("OnLeave", function(self)
-          texture:SetColorTexture(30/255, 80/255, 160/255, 0.05)
-          GameTooltip:Hide()
-        end)
-      end
-
-      -- Message type (LFG, LFM)
-      do
-        local icon = row:CreateTexture(nil, "OVERLAY")
-        icon:SetSize(32, 32)
-        icon:SetPoint("LEFT", 4, 0)
-        if listing.lfg then
-          icon:SetTexture("Interface\\FriendsFrame\\UI-Toast-FriendRequestIcon")
-        else
-          icon:SetTexture("Interface\\FriendsFrame\\UI-Toast-ChatInviteIcon")
-        end
-      end
-
-      -- Name, class and race
-      do
-        local name = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        name:SetText(listing.name)
-        name:SetPoint("TOPLEFT", 42, -5)
-
-        local nameColor = feature.config.classColor[listing.class]
-        name:SetTextColor(nameColor.r, nameColor.g, nameColor.b)
-        name:SetShadowColor(0, 0, 0, 1)
-        
-        local class = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        class:SetText("(" .. listing.class .. " " .. listing.race .. ")")
-        class:SetPoint("TOPLEFT", 42 + name:GetWidth() + 5, -6)
-        class:SetTextColor(80/255, 80/255, 80/255, 1)
-        class:SetShadowColor(0, 0, 0, 1)
-        class:SetFont(class:GetFont(), 10)
-      end
-
-      -- Instance name
-      do
-        local instanceName = nil
-        for _, item in pairs(feature.config.listings) do
-          if listing.instance == item.id then
-            instanceName = item.name
-            break
-          end
-        end
-        
-        local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        label:SetText(instanceName)
-        label:SetPoint("TOPLEFT", 42, -18)
-        label:SetTextColor(130/255, 130/255, 130/255, 1)
-        label:SetShadowColor(0, 0, 0, 1)
-        label:SetFont(label:GetFont(), 10)
-      end
-      
-      -- Invite to group button
-      do
-        local invite = CreateFrame("Button", "InviteToGroupButton" .. idx, row)
-        invite:SetText("Invite")
-        invite:SetPoint("RIGHT", -2, 0)
-        invite:SetSize(20, 32)
-        invite.data = listing
-
-        local texture = invite:CreateTexture(nil, "OVERLAY")
-        texture:SetAllPoints(true)
-        texture:SetSize(20, 32)
-        texture:SetTexture("Interface\\FriendsFrame\\TravelPass-Invite")
-        local left, right, top, bottom = MIA.Texture.calculateCoordinates(64, 128, 3, 34, 23, 66)
-        texture:SetTexCoord(left, right, top, bottom)
-        
-        local textureHover = invite:CreateTexture(nil, "OVERLAY")
-        textureHover:SetAllPoints(true)
-        textureHover:SetSize(20, 32)
-        textureHover:SetTexture("Interface\\FriendsFrame\\TravelPass-Invite")
-        local left, right, top, bottom = MIA.Texture.calculateCoordinates(64, 128, 30, 0, 50, 32)
-        textureHover:SetTexCoord(left, right, top, bottom)
-        textureHover:Hide()
-
-        if listing.lfm then
-          texture:SetDesaturated(true)
-          texture:SetAlpha(0.3)
-        end
-
-        if listing.lfg then
-          invite:SetScript("OnEnter", function(self) textureHover:Show() end)
-          invite:SetScript("OnLeave", function(self) textureHover:Hide() end)
-          invite:SetScript("OnClick", function()
-            InviteUnit(listing.name)
-          end)
-        end
-      end
-
-      -- Checking if tank, healer or dps
-      do
-        local left, right, top, bottom = MIA.Texture.calculateCoordinates(64, 64, 0, 20, 20, 40)
-        local icon = row:CreateTexture(nil, "OVERLAY")
-        icon:SetSize(20, 20)
-        icon:SetPoint("RIGHT", -80, 0)
-        icon:SetTexture("Interface\\LFGFRAME\\UI-LFG-ICON-PORTRAITROLES")
-        icon:SetTexCoord(left, right, top, bottom)
-        if not listing.tank then
-          icon:SetDesaturated(true)
-          icon:SetAlpha(0.3)
-        end
-        
-        local left, right, top, bottom = MIA.Texture.calculateCoordinates(64, 64, 20, 0, 40, 20)
-        local icon = row:CreateTexture(nil, "OVERLAY")
-        icon:SetSize(20, 20)
-        icon:SetPoint("RIGHT", -55, -1)
-        icon:SetTexture("Interface\\LFGFRAME\\UI-LFG-ICON-PORTRAITROLES")
-        icon:SetTexCoord(left, right, top, bottom)
-        if not listing.healer then
-          icon:SetDesaturated(true)
-          icon:SetAlpha(0.3)
-        end
-        
-        local left, right, top, bottom = MIA.Texture.calculateCoordinates(64, 64, 20, 20, 40, 40)
-        local icon = row:CreateTexture(nil, "OVERLAY")
-        icon:SetSize(20, 20)
-        icon:SetPoint("RIGHT", -30, -1)
-        icon:SetTexture("Interface\\LFGFRAME\\UI-LFG-ICON-PORTRAITROLES")
-        icon:SetTexCoord(left, right, top, bottom)
-        if not listing.dps then
-          icon:SetDesaturated(true)
-          icon:SetAlpha(0.3)
-        end
-      end
-    end
-
-    local function parseMessage(item)
-      local obj = {
-        lfg = false,
-        lfm = false,
-        healer = false,
-        dps = false,
-        tank = false,
-        instance = nil,
-        message = nil,
-        class = nil,
-        name = nil,
-        race = nil,
-        level = nil,
-      }
-
-      obj.class = item.class
-      obj.name = item.name
-      obj.race = item.race
-      obj.level = math.random(10, 60)
-
-      item.message = string.lower(item.message)
-      item.message = MIA.String.replace(item.message, "%d+", " ")
-      item.message = MIA.String.replace(item.message, "/", " ")
-      item.message = MIA.String.replace(item.message, ",", " ")
-      item.message = MIA.String.replace(item.message, "-", " ")
-
-      obj.message = item.message
-
-      -- Tokenizing the message.
-      local words = MIA.String.split(item.message, "%S+")
-
-      -- Checking fot LFG and LF/LFM and roles.
-      for _, word in pairs(words) do
-        if word == "lf" or word == "lfm" then obj.lfm = true end
-        if word == "lfg" then obj.lfg = true end
-        if word == "tank" then obj.tank = true end
-        if word == "heals" or word == "healer" then obj.healer = true end
-        if word == "dps" then obj.dps = true end
-      end
-
-      -- Check for instance only if LFG or LFM found.
-      if obj.lfg or obj.lfm then
-        for _, word in pairs(words) do
-          for key, instance in pairs(precompiledInstances) do
-            if word == key then
-              obj.instance = instance
-              break
-            end
-          end
-        end
-      end
-  
-      return obj
-    end
-    
-    -- Loop through all the messages
-    local validListings = {}
-    for _, message in pairs(LFGChatDB) do
-      local item = parseMessage(message)
-      if item and (item.lfg or item.lfm) and item.instance then
-        table.insert(validListings, item)
-      end
-    end
-    
-    print("All:", #LFGChatDB)
-    print("Valid:", #validListings)
-
-    for idx, listing in pairs(validListings) do
-      if idx > 200 then break end
-      createListingFrame(child, idx, listing)
-    end
-
     -- Refresh current listing
-    feature.frame.window.refresh = CreateFrame("Button", "RefreshButton", feature.frame.window, "UIPanelButtonTemplate")
-    feature.frame.window.refresh:SetText("Refresh")
-    feature.frame.window.refresh:SetPoint("BOTTOMRIGHT", 200, 15)
-    feature.frame.window.refresh:SetSize(79, 17)
-    feature.frame.window.refresh:SetScript("OnClick", function()
-      print("selected:")
-      for _, id in pairs(GetSelectedInstanceDropdownItems()) do
-        print(" - " .. id)
-      end
-
-      for i = 1, 200 do
-        if _G["ListingRow"..i] then
-          _G["ListingRow"..i]:Hide()
-          _G["ListingRow"..i] = nil
-        end
-      end
-
-      local r = math.random(0, 400)
-      local e = MIA.Table.getRange(validListings, r, r+200)
-      for idx, listing in pairs(e) do
-        if idx > 200 then break end
-        createListingFrame(child, idx, listing)
-      end
-    end)
-
-    -- Listening to incoming messages animation.
-    -- do
-    --   feature.frame.window.progress = CreateFrame("Frame", nil, feature.frame.window)
-    --   feature.frame.window.progress:SetSize(160, 16)
-    --   feature.frame.window.progress:SetPoint("BOTTOMLEFT", 19, 15)
-    --   feature.frame.window.progress:SetFrameStrata("LOW")
-
-    --   local background = feature.frame.window.progress:CreateTexture(nil, "BACKGROUND")
-    --   background:SetAllPoints(true)
-    --   background:SetColorTexture(0, 0, 0, 1)
-
-    --   feature.frame.window.progress.bar = CreateFrame("StatusBar", nil, feature.frame.window.progress)
-    --   feature.frame.window.progress.bar:SetPoint("CENTER", 0, 0)
-    --   feature.frame.window.progress.bar:SetMinMaxValues(0, 100)
-    --   feature.frame.window.progress.bar:SetValue(70)
-    --   feature.frame.window.progress.bar:SetSize(feature.frame.window.progress:GetWidth(), 16)
-      
-    --   local texture = feature.frame.window.progress.bar:CreateTexture(nil, "BACKGROUND")
-    --   texture:SetAllPoints()
-    --   texture:SetColorTexture(1.00, 0.49, 0.04, 0.5) -- druid
-    --   feature.frame.window.progress.bar:SetStatusBarTexture(texture)
-
-    --   local function UpdateProgress()
-    --     local value = feature.frame.window.progress.bar:GetValue()
-    --     if value < 100 then
-    --       feature.frame.window.progress.bar:SetValue(value + 10)
-    --     else
-    --       feature.frame.window.progress.bar:SetValue(0)
+    -- feature.frame.window.refresh = CreateFrame("Button", "RefreshButton", feature.frame.window, "UIPanelButtonTemplate")
+    -- feature.frame.window.refresh:SetText("Refresh")
+    -- feature.frame.window.refresh:SetPoint("BOTTOMRIGHT", -10, -20)
+    -- feature.frame.window.refresh:SetSize(79, 17)
+    -- feature.frame.window.refresh:SetScript("OnClick", function()
+    --   for i = 1, 300 do
+    --     if _G["ListingRow"..i] then
+    --       _G["ListingRow"..i]:Hide()
+    --       _G["ListingRow"..i] = nil
     --     end
     --   end
 
-    --   local timer = C_Timer.NewTicker(0.1, UpdateProgress)
-    -- end
+    --   -- Filter out only listings user is interested.
+    --   local validListings = {}
+    --   for _, listing in pairs(feature.data.listings) do
+    --     local instanceApproved = false
+    --     for _, l in pairs(GetSelectedInstanceDropdownItems()) do
+    --       if listing.instance == l then
+    --         instanceApproved = true
+    --       end
+    --     end
+
+    --     if instanceApproved then
+    --       table.insert(validListings, listing)
+    --     end
+    --   end
+
+    --   -- Create frames.
+    --   for idx, listing in pairs(validListings) do
+    --     createListingFrame(child, idx, listing)
+    --   end
+    -- end)
 
     -- Add minimap button
     do
       local minimapButton = CreateFrame("Button", nil, Minimap)
       minimapButton:SetSize(32, 32)
       minimapButton:SetFrameStrata("MEDIUM")
-        minimapButton:SetPoint("LEFT", Minimap, "LEFT", -22, 24)
+      minimapButton:SetPoint("LEFT", Minimap, "LEFT", -22, 24)
       minimapButton:SetNormalTexture("Interface\\Addons\\ClassicEnhanced\\UI\\MinimapButton")
       minimapButton:SetHighlightTexture("Interface\\Addons\\ClassicEnhanced\\UI\\MinimapButton")
       minimapButton:GetHighlightTexture():SetBlendMode("ADD")
@@ -617,6 +573,38 @@ feature.frame:SetScript("OnEvent", function(self, event)
       end)
     end
 
+    -- Starts autorefresh ticker.
+    feature.data.refreshTicker = C_Timer.NewTicker(feature.config.refreshInterval, function()
+      print("Refreshing LFG list")
+      
+      for i = 1, 300 do
+        if _G["ListingRow"..i] then
+          _G["ListingRow"..i]:Hide()
+          _G["ListingRow"..i] = nil
+        end
+      end
+
+      -- Filter out only listings user is interested.
+      local validListings = {}
+      for _, listing in pairs(feature.data.listings) do
+        local instanceApproved = false
+        for _, l in pairs(GetSelectedInstanceDropdownItems()) do
+          if listing.instance == l then
+            instanceApproved = true
+          end
+        end
+
+        if instanceApproved then
+          table.insert(validListings, listing)
+        end
+      end
+
+      -- Create frames.
+      for idx, listing in pairs(validListings) do
+        createListingFrame(child, idx, listing)
+      end
+    end)
+  
     -- Register slash command.
     SLASH_TweaksLFG1 = "/lfg"
     SlashCmdList["TweaksLFG"] = function(msg, editbox)
@@ -624,5 +612,27 @@ feature.frame:SetScript("OnEvent", function(self, event)
     end
     
     self:UnregisterEvent("ADDON_LOADED")
+  end
+
+  -- Parsing chat messages
+  if event == "CHAT_MSG_CHANNEL" then
+    local text, playerName, _, _, playerName2, _, _, channelIndex, channelBaseName, _, lineID, guid, _, _, _, _, _ = ...
+    if channelBaseName == "LookingForGroup" then
+      local class, _, race, _, _, name, realm = GetPlayerInfoByGUID(guid)
+
+      local item = {
+        class = class,
+        name = name,
+        race = race,
+        level = 0,
+        message = text,
+      }
+
+      local message = parseMessage(item)
+      if (message.lfg or message.lfm) and message.instance then
+        table.insert(feature.data.listings, message)
+        -- print(message.instance, message.name, message.race, message.lfg, message.lfm, message.tank, message.healer, message.dps)
+      end
+    end
   end
 end)
