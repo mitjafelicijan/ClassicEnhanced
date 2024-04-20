@@ -134,7 +134,7 @@ local function createListingFrame(parent, idx, listing)
     name:SetShadowColor(0, 0, 0, 1)
     
     local class = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    class:SetText("(" .. listing.class .. " " .. listing.race .. ")")
+    class:SetText("(" .. listing.race.. " " .. listing.class .. ")")
     class:SetPoint("TOPLEFT", 42 + name:GetWidth() + 5, -6)
     class:SetTextColor(80/255, 80/255, 80/255, 1)
     class:SetShadowColor(0, 0, 0, 1)
@@ -601,7 +601,7 @@ feature.frame:SetScript("OnEvent", function(self, event, ...)
 
       -- Create frames.
       for idx, listing in pairs(validListings) do
-        createListingFrame(child, idx, listing)
+        -- createListingFrame(child, idx, listing)
       end
     end)
   
@@ -626,12 +626,16 @@ feature.frame:SetScript("OnEvent", function(self, event, ...)
         race = race,
         level = 0,
         message = text,
+        ts = date("*t")
       }
+
+      -- local currentTime = date("*t")
+      -- print(string.format("Current time: %02d:%02d:%02d", currentTime.hour, currentTime.min, currentTime.sec))
 
       local message = parseMessage(item)
       if (message.lfg or message.lfm) and message.instance then
         table.insert(feature.data.listings, message)
-        -- print(message.instance, message.name, message.race, message.lfg, message.lfm, message.tank, message.healer, message.dps)
+        print(message.instance, message.name, message.race, message.class, message.lfg, message.lfm, message.tank, message.healer, message.dps)
       end
     end
   end
