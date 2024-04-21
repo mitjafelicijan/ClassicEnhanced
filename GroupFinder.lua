@@ -58,14 +58,17 @@ local feature = ns.Register({
       rowHeight = 35,
       rowSpacer = 3,
     },
-    refreshInterval = 20,
-    autoShow = true,
+    debugMessages = false,    -- prints out debug messages
+    autoShow = false,         -- auto shows ui on start
+    refreshInterval = 10,     -- refreshing ui every N seconds
+    listingLifespan = 120,    -- how long can the oldest listing be in seconds
   },
   data = {
     listings = {},
     refreshTicker = nil,
-    onlyLFM = false,
     precompiledInstances = {},
+    unfilteredListings = {},
+    filteredListings = {},
   }
 })
 
@@ -240,26 +243,20 @@ local function parseMessage(item)
     healer = false,
     dps = false,
     tank = false,
+    class = item.class,
+    name = item.name,
+    race = item.race,
+    level = item.level,
+    message = item.message,
     instance = nil,
-    message = nil,
-    class = nil,
-    name = nil,
-    race = nil,
-    level = nil,
   }
-
-  obj.class = item.class
-  obj.name = item.name
-  obj.race = item.race
-  obj.level = math.random(10, 60)
 
   item.message = string.lower(item.message)
   item.message = MIA.String.replace(item.message, "%d+", " ")
   item.message = MIA.String.replace(item.message, "/", " ")
   item.message = MIA.String.replace(item.message, ",", " ")
+  item.message = MIA.String.replace(item.message, "%.", " ")
   item.message = MIA.String.replace(item.message, "-", " ")
-
-  obj.message = item.message
 
   -- Tokenizing the message.
   local words = MIA.String.split(item.message, "%S+")
@@ -269,7 +266,7 @@ local function parseMessage(item)
     if word == "lf" or word == "lfm" then obj.lfm = true end
     if word == "lfg" then obj.lfg = true end
     if word == "tank" then obj.tank = true end
-    if word == "heals" or word == "healer" then obj.healer = true end
+    if word == "heal" or word == "heals" or word == "healer" then obj.healer = true end
     if word == "dps" then obj.dps = true end
   end
 
@@ -288,6 +285,251 @@ local function parseMessage(item)
   return obj
 end
 
+local function createBasicUIFrame()
+  feature.frame.window = CreateFrame("Frame", "GroupFinder", UIParent)
+  feature.frame.window:SetSize(512, 512)
+  feature.frame.window:SetPoint("CENTER", 0, 0)
+  feature.frame.window:SetFrameStrata("HIGH")
+  feature.frame.window:SetToplevel(true)
+  feature.frame.window:SetMovable(true)
+  feature.frame.window:EnableMouse(true)
+  feature.frame.window:RegisterForDrag("LeftButton")
+  feature.frame.window:SetScript("OnDragStart", feature.frame.window.StartMoving)
+  feature.frame.window:SetScript("OnDragStop", feature.frame.window.StopMovingOrSizing)
+
+  feature.frame.window:SetScript("OnShow", function(self)
+    PlaySound(SOUNDKIT.IG_MAINMENU_OPEN)
+  end)
+  
+  feature.frame.window:SetScript("OnHide", function(self)
+    PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
+  end)
+  
+  -- Create a texture to hold your background image
+  feature.frame.window.background = feature.frame.window:CreateTexture(nil, "BACKGROUND")
+  feature.frame.window.background:SetAllPoints(feature.frame.window)
+  feature.frame.window.background:SetTexture("Interface\\AddOns\\ClassicEnhanced\\UI\\GroupFinder")
+  feature.frame.window.background:SetVertexColor(1, 1, 1, 1)
+  feature.frame.window.background:SetTexCoord(0.0, 1.0, 0.0, 1.0)
+
+  -- Add title to the frame.
+  local title = feature.frame.window:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  title:SetText("Group Finder")
+  title:SetPoint("TOP", 20, -18)
+  title:SetShadowColor(0, 0, 0, 1)
+
+  -- Create a close button.
+  feature.frame.window.close = CreateFrame("Button", nil, feature.frame.window, "UIPanelCloseButton")
+  feature.frame.window.close:SetPoint("TOPRIGHT", feature.frame.window, "TOPRIGHT", 2, -8)
+  feature.frame.window.close:SetScript("OnClick", function()
+    feature.frame.window:Hide()
+  end)
+
+  -- Show the window.
+  if not feature.config.autoShow then
+    feature.frame.window:Hide()
+  end
+
+  -- Create filter dropdown frame.
+  do
+    feature.frame.window.filterDropdown = CreateFrame("Frame", "InstanceDropDown", feature.frame.window, "UIDropDownMenuTemplate")
+    feature.frame.window.filterDropdown:SetPoint("TOPLEFT", 80, -40)
+    feature.frame.window.filterDropdown:SetSize(60, 40)
+
+    local function InitializeDropdown(self, level)
+      local options = {
+        { key = "lfgOnly", label = "Looking for Group (LFG)" },
+        { key = "lfmOnly", label = "Looking for Man (LFM)" },
+      }
+
+      local types= {
+        { key = "tank", label = "Tank" },
+        { key = "healer", label = "Healer" },
+        { key = "dps", label = "DPS" },
+      }
+
+      local title = UIDropDownMenu_CreateInfo()
+      title.text = "Listing types"
+      title.isTitle = true
+      title.notCheckable = true
+      UIDropDownMenu_AddButton(title, level)
+
+      for _, option in pairs(options) do
+        local info = UIDropDownMenu_CreateInfo()
+        local menuItem = option
+        info.text = option.label
+        info.checked = option.checked
+        info.keepShownOnClick = true
+        info.isNotRadio = true
+
+        -- info.func = (function(menuItem)
+        --   return function(_, _, _, value)
+        --     menuItem.checked = value
+        --     ns.KVStorage.Set("LFGFilter", GetSelectedInstanceDropdownItems())
+        --   end
+        -- end)(item)
+        
+        UIDropDownMenu_AddButton(info, level)
+      end
+      
+      local title = UIDropDownMenu_CreateInfo()
+      title.text = "Roles"
+      title.isTitle = true
+      title.notCheckable = true
+      UIDropDownMenu_AddButton(title, level)
+      
+      for _, option in pairs(types) do
+        local info = UIDropDownMenu_CreateInfo()
+        local menuItem = option
+        info.text = option.label
+        info.checked = option.checked
+        info.keepShownOnClick = true
+        info.isNotRadio = true
+
+        -- info.func = (function(menuItem)
+        --   return function(_, _, _, value)
+        --     menuItem.checked = value
+        --     ns.KVStorage.Set("LFGFilter", GetSelectedInstanceDropdownItems())
+        --   end
+        -- end)(item)
+        
+        UIDropDownMenu_AddButton(info, level)
+      end
+    end
+
+    UIDropDownMenu_Initialize(feature.frame.window.filterDropdown, InitializeDropdown)
+    UIDropDownMenu_SetText(feature.frame.window.filterDropdown, "Filter listings")
+    UIDropDownMenu_SetWidth(feature.frame.window.filterDropdown, 140)
+  end
+
+  -- Create instance dropdown frame.
+  do
+    feature.frame.window.instanceDropdown = CreateFrame("Frame", "InstanceDropDown", feature.frame.window, "UIDropDownMenuTemplate")
+    feature.frame.window.instanceDropdown:SetPoint("TOPRIGHT", 8, -40)
+    feature.frame.window.instanceDropdown:SetSize(230, 40)
+
+    function GetSelectedInstanceDropdownItems()
+      local items = {}
+      for _, item in ipairs(feature.config.listings) do
+        if item.checked then
+          tinsert(items, item.id)
+        end
+      end
+      return items
+    end
+
+    local function InitializeDropdown(self, level)
+      -- Dungeons
+      local title = UIDropDownMenu_CreateInfo()
+      title.text = "Dungeons"
+      title.isTitle = true
+      title.notCheckable = true
+      UIDropDownMenu_AddButton(title, level)
+
+      for _, item in ipairs(feature.config.listings) do
+        if item.type == "dungeon" then
+          local info = UIDropDownMenu_CreateInfo()
+          local menuItem = item
+          info.text = item.name .. " (" .. item.level .. ")"
+          info.checked = item.checked
+          info.keepShownOnClick = true
+          info.isNotRadio = true
+
+          info.func = (function(menuItem)
+            return function(_, _, _, value)
+              menuItem.checked = value
+              ns.KVStorage.Set("LFGSelected", GetSelectedInstanceDropdownItems())
+            end
+          end)(item)
+
+          local previousSessionSelection = ns.KVStorage.Get("LFGSelected")
+          if ns.Helpers.TableContainsValue(previousSessionSelection, item.id) then
+            info.checked = true
+            item.checked = true
+          end
+
+          UIDropDownMenu_AddButton(info, level)
+        end
+      end
+    
+      -- Raids
+      local title = UIDropDownMenu_CreateInfo()
+      title.text = "Raids"
+      title.isTitle = true
+      title.notCheckable = true
+      UIDropDownMenu_AddButton(title, level)
+
+      for _, item in ipairs(feature.config.listings) do
+        if item.type == "raid" then
+          local info = UIDropDownMenu_CreateInfo()
+          local menuItem = item
+          info.text = item.name .. " (" .. item.level .. ")"
+          info.checked = item.checked
+          info.keepShownOnClick = true
+          info.isNotRadio = true
+
+          info.func = (function(menuItem)
+            return function(_, _, _, value)
+              menuItem.checked = value
+              ns.KVStorage.Set("LFGSelected", GetSelectedInstanceDropdownItems())
+            end
+          end)(item)
+
+          local previousSessionSelection = ns.KVStorage.Get("LFGSelected")
+          if ns.Helpers.TableContainsValue(previousSessionSelection, item.id) then
+            info.checked = true
+            item.checked = true
+          end
+
+          UIDropDownMenu_AddButton(info, level)
+        end
+      end
+    end
+
+    UIDropDownMenu_Initialize(feature.frame.window.instanceDropdown, InitializeDropdown)
+    UIDropDownMenu_SetText(feature.frame.window.instanceDropdown, "Dungeons & Raids")
+    UIDropDownMenu_SetWidth(feature.frame.window.instanceDropdown, 230)
+  end
+  
+  -- Create scrolling frame.
+  feature.frame.window.scrollFrame = CreateFrame("ScrollFrame", nil, feature.frame.window, "UIPanelScrollFrameTemplate")
+  feature.frame.window.scrollFrame:SetPoint("TOPLEFT", feature.frame.window, "TOPLEFT", 20, -78)
+  feature.frame.window.scrollFrame:SetPoint("BOTTOMRIGHT", feature.frame.window, "BOTTOMRIGHT", -35, 15)
+
+  feature.frame.window.scrollFrame.child = CreateFrame("Frame", nil, feature.frame.window.scrollFrame)
+  feature.frame.window.scrollFrame.child:SetSize(feature.frame.window.scrollFrame:GetWidth(), feature.frame.window.scrollFrame:GetHeight() - 30)
+  feature.frame.window.scrollFrame:SetScrollChild(feature.frame.window.scrollFrame.child)
+  
+  -- Add minimap button
+  do
+    local minimapButton = CreateFrame("Button", nil, Minimap)
+    minimapButton:SetSize(32, 32)
+    minimapButton:SetFrameStrata("MEDIUM")
+    minimapButton:SetPoint("LEFT", Minimap, "LEFT", -20, 22)
+    minimapButton:SetNormalTexture("Interface\\Addons\\ClassicEnhanced\\UI\\MinimapButton")
+    minimapButton:SetHighlightTexture("Interface\\Addons\\ClassicEnhanced\\UI\\MinimapButton")
+    minimapButton:GetHighlightTexture():SetBlendMode("ADD")
+    minimapButton:GetHighlightTexture():SetVertexColor(0.2, 0.2, 0.2)
+
+    minimapButton:SetScript("OnMouseDown", function(self)
+      self:SetNormalTexture("Interface\\Addons\\ClassicEnhanced\\UI\\MinimapButtonHover")
+    end)
+
+    minimapButton:SetScript("OnMouseUp", function(self)
+      self:SetNormalTexture("Interface\\Addons\\ClassicEnhanced\\UI\\MinimapButton")
+    end)
+    
+    minimapButton:SetScript("OnClick", function(self)
+      if feature.frame.window:IsShown() then
+        feature.frame.window:Hide()
+      else
+        feature.frame.window:Show()
+      end
+    end)
+  end
+
+end
+
 feature.frame:SetScript("OnEvent", function(self, event, ...)
   if not ns.IsEnabled(feature.identifier) then return end
   
@@ -297,220 +539,9 @@ feature.frame:SetScript("OnEvent", function(self, event, ...)
         feature.data.precompiledInstances[keyword] = instance.id
       end
     end
+
+    createBasicUIFrame()
     
-    feature.frame.window = CreateFrame("Frame", "GroupFinder", UIParent)
-    feature.frame.window:SetSize(512, 512)
-    feature.frame.window:SetPoint("CENTER", 0, 0)
-    feature.frame.window:SetFrameStrata("HIGH")
-    feature.frame.window:SetToplevel(true)
-    feature.frame.window:SetMovable(true)
-    feature.frame.window:EnableMouse(true)
-    feature.frame.window:RegisterForDrag("LeftButton")
-    feature.frame.window:SetScript("OnDragStart", feature.frame.window.StartMoving)
-    feature.frame.window:SetScript("OnDragStop", feature.frame.window.StopMovingOrSizing)
-
-    feature.frame.window:SetScript("OnShow", function(self)
-      PlaySound(SOUNDKIT.IG_MAINMENU_OPEN)
-    end)
-    
-    feature.frame.window:SetScript("OnHide", function(self)
-      PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
-    end)
-
-    -- Create a texture to hold your background image
-    feature.frame.window.background = feature.frame.window:CreateTexture(nil, "BACKGROUND")
-    feature.frame.window.background:SetAllPoints(feature.frame.window)
-    feature.frame.window.background:SetTexture("Interface\\AddOns\\ClassicEnhanced\\UI\\GroupFinder")
-    feature.frame.window.background:SetVertexColor(1, 1, 1, 1)
-    feature.frame.window.background:SetTexCoord(0.0, 1.0, 0.0, 1.0)
-
-    -- Add title to the frame.
-    local title = feature.frame.window:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    title:SetText("Group Finder")
-    title:SetPoint("TOP", 20, -18)
-    title:SetShadowColor(0, 0, 0, 1)
-
-    -- Create a close button.
-    feature.frame.window.close = CreateFrame("Button", nil, feature.frame.window, "UIPanelCloseButton")
-    feature.frame.window.close:SetPoint("TOPRIGHT", feature.frame.window, "TOPRIGHT", 2, -8)
-    feature.frame.window.close:SetScript("OnClick", function()
-      feature.frame.window:Hide()
-    end)
-
-    -- Show the window.
-    if not feature.config.autoShow then
-      feature.frame.window:Hide()
-    end
-    
-    -- Create filter dropdown frame.
-    do
-      feature.frame.window.filterDropdown = CreateFrame("Frame", "InstanceDropDown", feature.frame.window, "UIDropDownMenuTemplate")
-      feature.frame.window.filterDropdown:SetPoint("TOPLEFT", 80, -40)
-      feature.frame.window.filterDropdown:SetSize(60, 40)
-
-      local function InitializeDropdown(self, level)
-        local options = {
-          { key = "lfgOnly", label = "Looking for Group (LFG)" },
-          { key = "lfmOnly", label = "Looking for Man (LFM)" },
-        }
-
-        local types= {
-          { key = "tank", label = "Tank" },
-          { key = "healer", label = "Healer" },
-          { key = "dps", label = "DPS" },
-        }
-
-        local title = UIDropDownMenu_CreateInfo()
-        title.text = "Listing types"
-        title.isTitle = true
-        title.notCheckable = true
-        UIDropDownMenu_AddButton(title, level)
-
-        for _, option in pairs(options) do
-          local info = UIDropDownMenu_CreateInfo()
-          local menuItem = option
-          info.text = option.label
-          info.checked = option.checked
-          info.keepShownOnClick = true
-          info.isNotRadio = true
-
-          -- info.func = (function(menuItem)
-          --   return function(_, _, _, value)
-          --     menuItem.checked = value
-          --     ns.KVStorage.Set("LFGFilter", GetSelectedInstanceDropdownItems())
-          --   end
-          -- end)(item)
-          
-          UIDropDownMenu_AddButton(info, level)
-        end
-        
-        local title = UIDropDownMenu_CreateInfo()
-        title.text = "Roles"
-        title.isTitle = true
-        title.notCheckable = true
-        UIDropDownMenu_AddButton(title, level)
-        
-        for _, option in pairs(types) do
-          local info = UIDropDownMenu_CreateInfo()
-          local menuItem = option
-          info.text = option.label
-          info.checked = option.checked
-          info.keepShownOnClick = true
-          info.isNotRadio = true
-
-          -- info.func = (function(menuItem)
-          --   return function(_, _, _, value)
-          --     menuItem.checked = value
-          --     ns.KVStorage.Set("LFGFilter", GetSelectedInstanceDropdownItems())
-          --   end
-          -- end)(item)
-          
-          UIDropDownMenu_AddButton(info, level)
-        end
-      end
-
-      UIDropDownMenu_Initialize(feature.frame.window.filterDropdown, InitializeDropdown)
-      UIDropDownMenu_SetText(feature.frame.window.filterDropdown, "Filter listings")
-      UIDropDownMenu_SetWidth(feature.frame.window.filterDropdown, 140)
-    end
-
-    -- Create instance dropdown frame.
-    do
-      feature.frame.window.instanceDropdown = CreateFrame("Frame", "InstanceDropDown", feature.frame.window, "UIDropDownMenuTemplate")
-      feature.frame.window.instanceDropdown:SetPoint("TOPRIGHT", 8, -40)
-      feature.frame.window.instanceDropdown:SetSize(230, 40)
-
-      function GetSelectedInstanceDropdownItems()
-        local items = {}
-        for _, item in ipairs(feature.config.listings) do
-          if item.checked then
-            tinsert(items, item.id)
-          end
-        end
-        return items
-      end
-
-      local function InitializeDropdown(self, level)
-        -- Dungeons
-        local title = UIDropDownMenu_CreateInfo()
-        title.text = "Dungeons"
-        title.isTitle = true
-        title.notCheckable = true
-        UIDropDownMenu_AddButton(title, level)
- 
-        for _, item in ipairs(feature.config.listings) do
-          if item.type == "dungeon" then
-            local info = UIDropDownMenu_CreateInfo()
-            local menuItem = item
-            info.text = item.name .. " (" .. item.level .. ")"
-            info.checked = item.checked
-            info.keepShownOnClick = true
-            info.isNotRadio = true
-
-            info.func = (function(menuItem)
-              return function(_, _, _, value)
-                menuItem.checked = value
-                ns.KVStorage.Set("LFGSelected", GetSelectedInstanceDropdownItems())
-              end
-            end)(item)
-
-            local previousSessionSelection = ns.KVStorage.Get("LFGSelected")
-            if ns.Helpers.TableContainsValue(previousSessionSelection, item.id) then
-              info.checked = true
-              item.checked = true
-            end
-
-            UIDropDownMenu_AddButton(info, level)
-          end
-        end
-      
-        -- Raids
-        local title = UIDropDownMenu_CreateInfo()
-        title.text = "Raids"
-        title.isTitle = true
-        title.notCheckable = true
-        UIDropDownMenu_AddButton(title, level)
- 
-        for _, item in ipairs(feature.config.listings) do
-          if item.type == "raid" then
-            local info = UIDropDownMenu_CreateInfo()
-            local menuItem = item
-            info.text = item.name .. " (" .. item.level .. ")"
-            info.checked = item.checked
-            info.keepShownOnClick = true
-            info.isNotRadio = true
-
-            info.func = (function(menuItem)
-              return function(_, _, _, value)
-                menuItem.checked = value
-                ns.KVStorage.Set("LFGSelected", GetSelectedInstanceDropdownItems())
-              end
-            end)(item)
-
-            local previousSessionSelection = ns.KVStorage.Get("LFGSelected")
-            if ns.Helpers.TableContainsValue(previousSessionSelection, item.id) then
-              info.checked = true
-              item.checked = true
-            end
-
-            UIDropDownMenu_AddButton(info, level)
-          end
-        end
-      end
-
-      UIDropDownMenu_Initialize(feature.frame.window.instanceDropdown, InitializeDropdown)
-      UIDropDownMenu_SetText(feature.frame.window.instanceDropdown, "Dungeons & Raids")
-      UIDropDownMenu_SetWidth(feature.frame.window.instanceDropdown, 230)
-    end
-
-    feature.frame.window.scrollFrame = CreateFrame("ScrollFrame", nil, feature.frame.window, "UIPanelScrollFrameTemplate")
-    feature.frame.window.scrollFrame:SetPoint("TOPLEFT", feature.frame.window, "TOPLEFT", 20, -78)
-    feature.frame.window.scrollFrame:SetPoint("BOTTOMRIGHT", feature.frame.window, "BOTTOMRIGHT", -35, 15)
-
-    local child = CreateFrame("Frame", nil, feature.frame.window.scrollFrame)
-    child:SetSize(feature.frame.window.scrollFrame:GetWidth(), feature.frame.window.scrollFrame:GetHeight() - 30)
-    feature.frame.window.scrollFrame:SetScrollChild(child)
-
     -- Refresh current listing
     -- feature.frame.window.refresh = CreateFrame("Button", "RefreshButton", feature.frame.window, "UIPanelButtonTemplate")
     -- feature.frame.window.refresh:SetText("Refresh")
@@ -545,38 +576,75 @@ feature.frame:SetScript("OnEvent", function(self, event, ...)
     --   end
     -- end)
 
-    -- Add minimap button
-    do
-      local minimapButton = CreateFrame("Button", nil, Minimap)
-      minimapButton:SetSize(32, 32)
-      minimapButton:SetFrameStrata("MEDIUM")
-      minimapButton:SetPoint("LEFT", Minimap, "LEFT", -22, 24)
-      minimapButton:SetNormalTexture("Interface\\Addons\\ClassicEnhanced\\UI\\MinimapButton")
-      minimapButton:SetHighlightTexture("Interface\\Addons\\ClassicEnhanced\\UI\\MinimapButton")
-      minimapButton:GetHighlightTexture():SetBlendMode("ADD")
-      minimapButton:GetHighlightTexture():SetVertexColor(0.2, 0.2, 0.2)
-
-      minimapButton:SetScript("OnMouseDown", function(self)
-        self:SetNormalTexture("Interface\\Addons\\ClassicEnhanced\\UI\\MinimapButtonHover")
-      end)
-
-      minimapButton:SetScript("OnMouseUp", function(self)
-        self:SetNormalTexture("Interface\\Addons\\ClassicEnhanced\\UI\\MinimapButton")
-      end)
-      
-      minimapButton:SetScript("OnClick", function(self)
-        if feature.frame.window:IsShown() then
-          feature.frame.window:Hide()
-        else
-          feature.frame.window:Show()
-        end
-      end)
-    end
-
     -- Starts autorefresh ticker.
-    feature.data.refreshTicker = C_Timer.NewTicker(feature.config.refreshInterval, function()
-      print("Refreshing LFG list")
+    -- feature.data.refreshTicker = C_Timer.NewTicker(feature.config.refreshInterval, function()
+    --   print("Refreshing LFG list")
       
+    --   for i = 1, 300 do
+    --     if _G["ListingRow"..i] then
+    --       _G["ListingRow"..i]:Hide()
+    --       _G["ListingRow"..i] = nil
+    --     end
+    --   end
+
+    --   -- Filter out only listings user is interested.
+    --   local validListings = {}
+    --   for _, listing in pairs(feature.data.listings) do
+    --     local instanceApproved = false
+    --     for _, l in pairs(GetSelectedInstanceDropdownItems()) do
+    --       if listing.instance == l then
+    --         instanceApproved = true
+    --       end
+    --     end
+
+    --     if instanceApproved then
+    --       table.insert(validListings, listing)
+    --     end
+    --   end
+
+    --   -- Create frames.
+    --   for idx, listing in pairs(validListings) do
+    --     -- createListingFrame(child, idx, listing)
+    --   end
+    -- end)
+
+    -- Filters messages and creates frames in UI.
+    feature.data.refreshTicker = C_Timer.NewTicker(feature.config.refreshInterval, function()
+      feature.data.filteredListings = {}
+
+      -- Remove older unfilter listings.
+      for idx, item in pairs(feature.data.unfilteredListings) do
+        if item.created < (time() - feature.config.listingLifespan )then
+          table.remove(feature.data.unfilteredListings, idx)
+        end
+      end
+      
+      local selectedInstances = GetSelectedInstanceDropdownItems()
+
+      -- Filter out only ones that are valid.
+      -- Only allow one listing per user per instance.
+      for idx, item in pairs(feature.data.unfilteredListings) do
+        local message = parseMessage(item)
+        if (message.lfg or message.lfm) and message.instance then
+          -- Only check for selected instanced.
+          local instanceApproved = false
+          for _, l in pairs(selectedInstances) do
+            if message.instance == l then
+              instanceApproved = true
+            end
+          end
+
+          if instanceApproved then
+            table.insert(feature.data.filteredListings, message)
+          end
+          
+          if feature.config.debugMessages then
+            -- print(message.instance, message.name, message.race, message.class, message.lfg, message.lfm, message.tank, message.healer, message.dps)
+          end
+        end
+      end
+      
+      -- Removing old UI listing frames.
       for i = 1, 300 do
         if _G["ListingRow"..i] then
           _G["ListingRow"..i]:Hide()
@@ -584,24 +652,14 @@ feature.frame:SetScript("OnEvent", function(self, event, ...)
         end
       end
 
-      -- Filter out only listings user is interested.
-      local validListings = {}
-      for _, listing in pairs(feature.data.listings) do
-        local instanceApproved = false
-        for _, l in pairs(GetSelectedInstanceDropdownItems()) do
-          if listing.instance == l then
-            instanceApproved = true
-          end
-        end
-
-        if instanceApproved then
-          table.insert(validListings, listing)
-        end
+      -- Adding filtered listings to UI.
+      for j, l in pairs(feature.data.filteredListings) do
+        createListingFrame(feature.frame.window.scrollFrame.child, j, l)
       end
 
-      -- Create frames.
-      for idx, listing in pairs(validListings) do
-        -- createListingFrame(child, idx, listing)
+      if feature.config.debugMessages then
+        print("Unfiltered:", #feature.data.unfilteredListings)
+        print("Filtered:", #feature.data.filteredListings)
       end
     end)
   
@@ -619,24 +677,14 @@ feature.frame:SetScript("OnEvent", function(self, event, ...)
     local text, playerName, _, _, playerName2, _, _, channelIndex, channelBaseName, _, lineID, guid, _, _, _, _, _ = ...
     if channelBaseName == "LookingForGroup" then
       local class, _, race, _, _, name, realm = GetPlayerInfoByGUID(guid)
-
-      local item = {
+      table.insert(feature.data.unfilteredListings, {
         class = class,
         name = name,
         race = race,
         level = 0,
         message = text,
-        ts = date("*t")
-      }
-
-      -- local currentTime = date("*t")
-      -- print(string.format("Current time: %02d:%02d:%02d", currentTime.hour, currentTime.min, currentTime.sec))
-
-      local message = parseMessage(item)
-      if (message.lfg or message.lfm) and message.instance then
-        table.insert(feature.data.listings, message)
-        print(message.instance, message.name, message.race, message.class, message.lfg, message.lfm, message.tank, message.healer, message.dps)
-      end
+        created = time()
+      })
     end
   end
 end)
