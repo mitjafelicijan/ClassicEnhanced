@@ -6,7 +6,7 @@ local feature = ns.Register({
   category = "social",
   frame = nil,
   config = {
-    movable = false,
+    movable = true,
     windowWidth = 420,
     windowHeight = 540,
     classColor = {
@@ -58,6 +58,18 @@ local feature = ns.Register({
       rowHeight = 35,
       rowSpacer = 3,
     },
+
+    filterGroupType = {
+      { key = "lfg", label = "Looking for Group (LFG)" },
+      { key = "lfm", label = "Looking for Man (LFM)" },
+    },
+
+    filterRole = {
+      { key = "tank", label = "Tank" },
+      { key = "healer", label = "Healer" },
+      { key = "dps", label = "DPS" },
+    },
+    
     debugMessages = false,    -- prints out debug messages
     autoShow = false,         -- auto shows ui on start
     refreshInterval = 10,     -- refreshing ui every N seconds
@@ -291,11 +303,14 @@ local function createBasicUIFrame()
   feature.frame.window:SetPoint("CENTER", 0, 0)
   feature.frame.window:SetFrameStrata("HIGH")
   feature.frame.window:SetToplevel(true)
-  feature.frame.window:SetMovable(true)
-  feature.frame.window:EnableMouse(true)
-  feature.frame.window:RegisterForDrag("LeftButton")
-  feature.frame.window:SetScript("OnDragStart", feature.frame.window.StartMoving)
-  feature.frame.window:SetScript("OnDragStop", feature.frame.window.StopMovingOrSizing)
+
+  if feature.config.movable then
+    feature.frame.window:SetMovable(true)
+    feature.frame.window:EnableMouse(true)
+    feature.frame.window:RegisterForDrag("LeftButton")
+    feature.frame.window:SetScript("OnDragStart", feature.frame.window.StartMoving)
+    feature.frame.window:SetScript("OnDragStop", feature.frame.window.StopMovingOrSizing)
+  end
 
   feature.frame.window:SetScript("OnShow", function(self)
     PlaySound(SOUNDKIT.IG_MAINMENU_OPEN)
@@ -330,31 +345,23 @@ local function createBasicUIFrame()
     feature.frame.window:Hide()
   end
 
-  -- Create filter dropdown frame.
+  -- Create group type filter dropdown frame.
   do
-    feature.frame.window.filterDropdown = CreateFrame("Frame", "InstanceDropDown", feature.frame.window, "UIDropDownMenuTemplate")
-    feature.frame.window.filterDropdown:SetPoint("TOPLEFT", 80, -40)
-    feature.frame.window.filterDropdown:SetSize(60, 40)
+    feature.frame.window.groupTypeFilterDropdown = CreateFrame("Frame", "InstanceDropDown", feature.frame.window, "UIDropDownMenuTemplate")
+    feature.frame.window.groupTypeFilterDropdown:SetPoint("TOPRIGHT", -292, -40)
+    
+    function GetSelectedGroupTypeFilterDropdownItems()
+      local items = {}
+      for _, item in ipairs(feature.config.filterGroupType) do
+        if item.checked then
+          tinsert(items, item.key)
+        end
+      end
+      return items
+    end
 
     local function InitializeDropdown(self, level)
-      local options = {
-        { key = "lfgOnly", label = "Looking for Group (LFG)" },
-        { key = "lfmOnly", label = "Looking for Man (LFM)" },
-      }
-
-      local types= {
-        { key = "tank", label = "Tank" },
-        { key = "healer", label = "Healer" },
-        { key = "dps", label = "DPS" },
-      }
-
-      local title = UIDropDownMenu_CreateInfo()
-      title.text = "Listing types"
-      title.isTitle = true
-      title.notCheckable = true
-      UIDropDownMenu_AddButton(title, level)
-
-      for _, option in pairs(options) do
+      for _, option in pairs(feature.config.filterGroupType) do
         local info = UIDropDownMenu_CreateInfo()
         local menuItem = option
         info.text = option.label
@@ -362,51 +369,78 @@ local function createBasicUIFrame()
         info.keepShownOnClick = true
         info.isNotRadio = true
 
-        -- info.func = (function(menuItem)
-        --   return function(_, _, _, value)
-        --     menuItem.checked = value
-        --     ns.KVStorage.Set("LFGFilter", GetSelectedInstanceDropdownItems())
-        --   end
-        -- end)(item)
+        info.func = (function(menuItem)
+          return function(_, _, _, value)
+            menuItem.checked = value
+            ns.KVStorage.Set("LFGFilterGroupType", GetSelectedGroupTypeFilterDropdownItems())
+          end
+        end)(menuItem)
         
-        UIDropDownMenu_AddButton(info, level)
-      end
-      
-      local title = UIDropDownMenu_CreateInfo()
-      title.text = "Roles"
-      title.isTitle = true
-      title.notCheckable = true
-      UIDropDownMenu_AddButton(title, level)
-      
-      for _, option in pairs(types) do
-        local info = UIDropDownMenu_CreateInfo()
-        local menuItem = option
-        info.text = option.label
-        info.checked = option.checked
-        info.keepShownOnClick = true
-        info.isNotRadio = true
-
-        -- info.func = (function(menuItem)
-        --   return function(_, _, _, value)
-        --     menuItem.checked = value
-        --     ns.KVStorage.Set("LFGFilter", GetSelectedInstanceDropdownItems())
-        --   end
-        -- end)(item)
+        local previousSessionSelection = ns.KVStorage.Get("LFGFilterGroupType")
+        if ns.Helpers.TableContainsValue(previousSessionSelection, menuItem.key) then
+          info.checked = true
+          menuItem.checked = true
+        end
         
         UIDropDownMenu_AddButton(info, level)
       end
     end
 
-    UIDropDownMenu_Initialize(feature.frame.window.filterDropdown, InitializeDropdown)
-    UIDropDownMenu_SetText(feature.frame.window.filterDropdown, "Filter listings")
-    UIDropDownMenu_SetWidth(feature.frame.window.filterDropdown, 140)
+    UIDropDownMenu_Initialize(feature.frame.window.groupTypeFilterDropdown, InitializeDropdown)
+    UIDropDownMenu_SetText(feature.frame.window.groupTypeFilterDropdown, "Group type")
+    UIDropDownMenu_SetWidth(feature.frame.window.groupTypeFilterDropdown, 100)
+  end
+
+  -- Create roles filter dropdown frame.
+  do
+    feature.frame.window.roleFilterDropdown = CreateFrame("Frame", "InstanceDropDown", feature.frame.window, "UIDropDownMenuTemplate")
+    feature.frame.window.roleFilterDropdown:SetPoint("TOPRIGHT", -172, -40)
+    
+    function GetSelectedRoleFilterDropdownItems()
+      local items = {}
+      for _, item in ipairs(feature.config.filterRole) do
+        if item.checked then
+          tinsert(items, item.key)
+        end
+      end
+      return items
+    end
+
+    local function InitializeDropdown(self, level)
+      for _, option in pairs(feature.config.filterRole) do
+        local info = UIDropDownMenu_CreateInfo()
+        local menuItem = option
+        info.text = option.label
+        info.checked = option.checked
+        info.keepShownOnClick = true
+        info.isNotRadio = true
+
+        info.func = (function(menuItem)
+          return function(_, _, _, value)
+            menuItem.checked = value
+            ns.KVStorage.Set("LFGFilterRole", GetSelectedRoleFilterDropdownItems())
+          end
+        end)(menuItem)
+
+        local previousSessionSelection = ns.KVStorage.Get("LFGFilterRole")
+        if ns.Helpers.TableContainsValue(previousSessionSelection, menuItem.key) then
+          info.checked = true
+          menuItem.checked = true
+        end
+        
+        UIDropDownMenu_AddButton(info, level)
+      end
+    end
+
+    UIDropDownMenu_Initialize(feature.frame.window.roleFilterDropdown, InitializeDropdown)
+    UIDropDownMenu_SetText(feature.frame.window.roleFilterDropdown, "Role type")
+    UIDropDownMenu_SetWidth(feature.frame.window.roleFilterDropdown, 100)
   end
 
   -- Create instance dropdown frame.
   do
     feature.frame.window.instanceDropdown = CreateFrame("Frame", "InstanceDropDown", feature.frame.window, "UIDropDownMenuTemplate")
     feature.frame.window.instanceDropdown:SetPoint("TOPRIGHT", 8, -40)
-    feature.frame.window.instanceDropdown:SetSize(230, 40)
 
     function GetSelectedInstanceDropdownItems()
       local items = {}
@@ -488,7 +522,7 @@ local function createBasicUIFrame()
 
     UIDropDownMenu_Initialize(feature.frame.window.instanceDropdown, InitializeDropdown)
     UIDropDownMenu_SetText(feature.frame.window.instanceDropdown, "Dungeons & Raids")
-    UIDropDownMenu_SetWidth(feature.frame.window.instanceDropdown, 230)
+    UIDropDownMenu_SetWidth(feature.frame.window.instanceDropdown, 160)
   end
   
   -- Create scrolling frame.
@@ -541,72 +575,6 @@ feature.frame:SetScript("OnEvent", function(self, event, ...)
     end
 
     createBasicUIFrame()
-    
-    -- Refresh current listing
-    -- feature.frame.window.refresh = CreateFrame("Button", "RefreshButton", feature.frame.window, "UIPanelButtonTemplate")
-    -- feature.frame.window.refresh:SetText("Refresh")
-    -- feature.frame.window.refresh:SetPoint("BOTTOMRIGHT", -10, -20)
-    -- feature.frame.window.refresh:SetSize(79, 17)
-    -- feature.frame.window.refresh:SetScript("OnClick", function()
-    --   for i = 1, 300 do
-    --     if _G["ListingRow"..i] then
-    --       _G["ListingRow"..i]:Hide()
-    --       _G["ListingRow"..i] = nil
-    --     end
-    --   end
-
-    --   -- Filter out only listings user is interested.
-    --   local validListings = {}
-    --   for _, listing in pairs(feature.data.listings) do
-    --     local instanceApproved = false
-    --     for _, l in pairs(GetSelectedInstanceDropdownItems()) do
-    --       if listing.instance == l then
-    --         instanceApproved = true
-    --       end
-    --     end
-
-    --     if instanceApproved then
-    --       table.insert(validListings, listing)
-    --     end
-    --   end
-
-    --   -- Create frames.
-    --   for idx, listing in pairs(validListings) do
-    --     createListingFrame(child, idx, listing)
-    --   end
-    -- end)
-
-    -- Starts autorefresh ticker.
-    -- feature.data.refreshTicker = C_Timer.NewTicker(feature.config.refreshInterval, function()
-    --   print("Refreshing LFG list")
-      
-    --   for i = 1, 300 do
-    --     if _G["ListingRow"..i] then
-    --       _G["ListingRow"..i]:Hide()
-    --       _G["ListingRow"..i] = nil
-    --     end
-    --   end
-
-    --   -- Filter out only listings user is interested.
-    --   local validListings = {}
-    --   for _, listing in pairs(feature.data.listings) do
-    --     local instanceApproved = false
-    --     for _, l in pairs(GetSelectedInstanceDropdownItems()) do
-    --       if listing.instance == l then
-    --         instanceApproved = true
-    --       end
-    --     end
-
-    --     if instanceApproved then
-    --       table.insert(validListings, listing)
-    --     end
-    --   end
-
-    --   -- Create frames.
-    --   for idx, listing in pairs(validListings) do
-    --     -- createListingFrame(child, idx, listing)
-    --   end
-    -- end)
 
     -- Filters messages and creates frames in UI.
     feature.data.refreshTicker = C_Timer.NewTicker(feature.config.refreshInterval, function()
@@ -620,13 +588,15 @@ feature.frame:SetScript("OnEvent", function(self, event, ...)
       end
       
       local selectedInstances = GetSelectedInstanceDropdownItems()
+      local filterGroupType = GetSelectedGroupTypeFilterDropdownItems()
+      local filterRoleType = GetSelectedRoleFilterDropdownItems()
 
       -- Filter out only ones that are valid.
       -- Only allow one listing per user per instance.
       for idx, item in pairs(feature.data.unfilteredListings) do
         local message = parseMessage(item)
         if (message.lfg or message.lfm) and message.instance then
-          -- Only check for selected instanced.
+          -- Check for selected instanced.
           local instanceApproved = false
           for _, l in pairs(selectedInstances) do
             if message.instance == l then
@@ -634,17 +604,44 @@ feature.frame:SetScript("OnEvent", function(self, event, ...)
             end
           end
 
-          if instanceApproved then
-            table.insert(feature.data.filteredListings, message)
-          end
-          
+          -- local obj = {
+          --   lfg = false,
+          --   lfm = false,
+          --   healer = false,
+          --   dps = false,
+          --   tank = false,
+          --   class = item.class,
+          --   name = item.name,
+          --   race = item.race,
+          --   level = item.level,
+          --   message = item.message,
+          --   instance = nil,
+          -- }gg
+
           if feature.config.debugMessages then
-            -- print(message.instance, message.name, message.race, message.class, message.lfg, message.lfm, message.tank, message.healer, message.dps)
+            print(message.instance, message.name, message.race, message.class, message.lfg, message.lfm, message.tank, message.healer, message.dps)
+          end
+
+          if instanceApproved then
+            -- Check for group type filter.
+            local breakOut = 0
+            for _, e in pairs(filterGroupType) do
+              if e == "lfg" and not message.lfg then breakOut = breakOut + 1 end
+              if e == "lfm" and not message.lfm then breakOut = breakOut + 1 end
+            end
+            if breakOut == 2 then break end
+
+            -- TODO: Check for role type filter.
+            local filterRoleTypeApproved = false
+
+            -- Add to filtered listing which are displayed in UI.
+            table.insert(feature.data.filteredListings, message)
           end
         end
       end
       
       -- Removing old UI listing frames.
+      -- FIXME: Fix this since it's a memory hog. Reuse frames in the future.
       for i = 1, 300 do
         if _G["ListingRow"..i] then
           _G["ListingRow"..i]:Hide()
