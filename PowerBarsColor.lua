@@ -76,13 +76,7 @@ local function RaidFramesPowerBars()
 end
 
 feature.frame = CreateFrame("Frame")
-feature.frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-feature.frame:RegisterEvent("UNIT_POWER_UPDATE")
-feature.frame:RegisterEvent("UPDATE_SHAPESHIFT_FORM")
-feature.frame:RegisterEvent("SPELL_UPDATE_USABLE")
-feature.frame:RegisterEvent("PLAYER_TARGET_CHANGED")
-feature.frame:RegisterEvent("UNIT_OTHER_PARTY_CHANGED")
-feature.frame:RegisterEvent("RAID_ROSTER_UPDATE")
+feature.frame:RegisterAllEvents()
 
 feature.frame:SetScript("OnEvent", function(self, event)
   if not ns.IsEnabled(feature.identifier) then return end
