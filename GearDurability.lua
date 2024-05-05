@@ -37,8 +37,18 @@ feature.frame:SetScript("OnEvent", function(self, event)
   if not ns.IsEnabled(feature.identifier) then return end
 
   if event == "ADDON_LOADED" then
+    xOffset = 28
+    yOffset = -410
+    
+    local version, build, date, tocversion = GetBuildInfo()
+
+    -- Cata client.
+    if tonumber(build) > 50000 then
+      xOffset = 22
+      yOffset = -400
+    end
     feature.frame.durabilityText = PaperDollFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    feature.frame.durabilityText:SetPoint("TOPLEFT", 28, -410)
+    feature.frame.durabilityText:SetPoint("TOPLEFT", xOffset, yOffset)
     
     CharacterFrame:HookScript("OnShow", function()
       if feature.frame.durabilityText then
