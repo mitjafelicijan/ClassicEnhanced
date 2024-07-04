@@ -2,7 +2,7 @@ local _, ns = ...
 
 local feature = ns.Register({
   identifier = "GroupFinder",
-  description = "Group finder window that parses Looking for Group channels.",
+  description = "Group finder window that parses Looking for Group channels |cFFFF0000(Beta)|r.",
   category = "social",
   frame = nil,
   config = {

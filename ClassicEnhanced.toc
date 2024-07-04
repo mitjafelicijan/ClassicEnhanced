@@ -31,5 +31,6 @@ PowerBarsColor.lua
 QuestLog.lua
 ScreenGlow.lua
 VendorPrice.lua
+FishingSound.lua
 
 Settings.lua
