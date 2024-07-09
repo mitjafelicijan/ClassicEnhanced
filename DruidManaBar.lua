@@ -20,7 +20,7 @@ feature.frame:SetScript("OnEvent", function(self, event)
   if event == "PLAYER_ENTERING_WORLD" then
     local _, class = UnitClass("player")
     if class == "DRUID" then
-      feature.frame.bar = CreateFrame("StatusBar", nil, PlayerFrame, "TextStatusBar")
+      feature.frame.bar = CreateFrame("StatusBar", "PlayerFrameDruidBar", PlayerFrame, "TextStatusBar")
       feature.frame.bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
       feature.frame.bar:SetSize(104, 10)
       feature.frame.bar:SetPoint("TOPLEFT", PlayerFrame, "TOPLEFT", 114, -66);
@@ -62,8 +62,12 @@ feature.frame:SetScript("OnEvent", function(self, event)
     -- Toggles additional mana bar only in shapeshifting form.
     local form = GetShapeshiftForm()
     if feature.frame and feature.frame.bar then
-      feature.frame.bar:SetValue(UnitPower("player", 0))
-      if form == 1 or form == 3 then feature.frame.bar:Show() else feature.frame.bar:Hide() end
+      if form == 1 or form == 3 then
+        feature.frame.bar:SetValue(UnitPower("player", 0))
+        feature.frame.bar:Show()
+      else
+        feature.frame.bar:Hide()
+      end
     end
   end
 end)
