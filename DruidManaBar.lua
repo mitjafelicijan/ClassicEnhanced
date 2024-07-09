@@ -51,15 +51,19 @@ feature.frame:SetScript("OnEvent", function(self, event)
       feature.frame.bar:SetMinMaxValues(0, UnitPowerMax("player", 0))
       feature.frame.bar:SetValue(UnitPower("player", 0))
 
+      -- Hide by default.
+      feature.frame.bar:Hide()
+
       -- Hide the additional bar if not in shapeshifting form on load.
-      if GetShapeshiftForm() == 0 then feature.frame.bar:Hide() end
+      local form = GetShapeshiftForm()
+      if form == 1 or form == 3 then feature.frame.bar:Show() end
     end
   else
     -- Toggles additional mana bar only in shapeshifting form.
     local form = GetShapeshiftForm()
     if feature.frame and feature.frame.bar then
       feature.frame.bar:SetValue(UnitPower("player", 0))
-      if form == 0 then feature.frame.bar:Hide() else feature.frame.bar:Show() end
+      if form == 1 or form == 3 then feature.frame.bar:Show() else feature.frame.bar:Hide() end
     end
   end
 end)
